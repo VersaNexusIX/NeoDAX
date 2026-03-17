@@ -27,8 +27,8 @@ const { spawnSync, execSync } = require('child_process');
 // When run from git clone js/scripts/:
 //   ROOT     = NeoDAX/js/
 //   PKG_ROOT = NeoDAX/                       (has src/, include/, build_js.sh)
-const ROOT     = path.join(__dirname, '..');     // js/ directory
-const PKG_ROOT = path.join(ROOT, '..');          // repo/package root
+const ROOT     = path.join(__dirname, '..');
+const PKG_ROOT = ROOT;
 const ADDON    = path.join(ROOT, 'neodax.node');
 const BUILDS   = path.join(ROOT, 'prebuilds');
 
