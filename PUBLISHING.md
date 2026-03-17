@@ -247,4 +247,6 @@ The `ubuntu-24.04-arm` runner requires the repo has access to GitHub's ARM64 run
 - Check the `npm-publish` environment protection rules aren't blocking
 
 **Version mismatch error:**
-The tag must match `js/package.json` version exactly. Use the Release workflow to keep them in sync, or manually update `package.json` before tagging.
+The tag must match `package.json` (root) version exactly. Use the Release workflow to keep them in sync, or manually update `package.json` before tagging.
+
+Note: `js/package.json` is a legacy file kept for reference. The **root `package.json`** is the authoritative npm package configuration.

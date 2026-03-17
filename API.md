@@ -198,8 +198,11 @@ typedef struct {
 
 ```c
 typedef enum { FMT_ELF32, FMT_ELF64, FMT_PE32, FMT_PE64, FMT_RAW, FMT_UNKNOWN } dax_fmt_t;
+/* Note: Mach-O 64-bit sets FMT_ELF64, Mach-O 32-bit sets FMT_ELF32 (format enum reused) */
 typedef enum { ARCH_X86_64, ARCH_ARM64, ARCH_RISCV64, ARCH_UNKNOWN } dax_arch_t;
-typedef enum { OS_LINUX, OS_ANDROID, OS_BSD, OS_WINDOWS, OS_SYSV, OS_UNKNOWN } dax_os_t;
+typedef enum { DAX_PLAT_UNKNOWN=0, DAX_PLAT_LINUX, DAX_PLAT_ANDROID,
+                DAX_PLAT_BSD, DAX_PLAT_UNIX, DAX_PLAT_WINDOWS } dax_os_t;
+/* Note: macOS sets DAX_PLAT_BSD */
 
 typedef enum {
     SEC_TYPE_CODE, SEC_TYPE_DATA, SEC_TYPE_RODATA, SEC_TYPE_BSS,
@@ -230,6 +233,7 @@ typedef enum { STR_ENC_ASCII, STR_ENC_UTF8, STR_ENC_UTF16LE, STR_ENC_UTF16BE } d
 
 ```c
 int  dax_load_binary(const char *path, dax_binary_t *bin);
+int  dax_parse_macho(dax_binary_t *bin);  /* called automatically for Mach-O magic bytes */
 ```
 Load and parse a binary file. Populates all fields of `bin`. Returns `0` on success, `-1` on error.
 

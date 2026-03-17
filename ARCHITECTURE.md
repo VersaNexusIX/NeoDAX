@@ -108,7 +108,9 @@ section     output_daxc  start_addr  end_addr
 ## Module Descriptions
 
 ### `loader.c` — Binary Parser
-Reads the file into memory and dispatches to ELF or PE parsing. Populates:
+Reads the file into memory and dispatches to ELF, PE, or Mach-O parsing. Detects format by magic bytes: `0x7fELF` → ELF, `MZ` → PE, `0xFEEDFACF`/`0xBEBAFECA` etc → Mach-O.
+
+Populates:
 - `bin->sections[]` — virtual address, file offset, size, flags, type
 - `bin->arch`, `bin->fmt`, `bin->os`
 - `bin->entry`, `bin->base`, `bin->image_size`
@@ -159,6 +161,18 @@ Two independent scanners:
 3. Rejects if all hi-bytes are 0 (pure null-padded ASCII)
 4. Rejects if no codepoint > U+02FF (rejects ELF binary data)
 5. Requires ≥ 6 code units and ≥ 3 wide units (or surrogate pair)
+
+### `macho.c` — Mach-O Parser
+
+Handles macOS/iOS/macOS binaries:
+
+**FAT/universal:** `fat_find_slice()` walks the big-endian FAT header (using `bswap32`), selects the ARM64 slice first, falls back to x86-64. File offsets in section structures are **absolute** from the start of the full FAT file — not slice-relative — so `bin->data + section->offset` is always correct.
+
+**Magic constants:** All Mach-O magic values are defined as what a little-endian CPU *reads* from the raw bytes. `MACHO_MAGIC_64_LE = 0xFEEDFACF` (bytes `CF FA ED FE` on disk). `swap=1` only for big-endian files.
+
+**Load command walker:** Iterates `ncmds` load commands. Handles `LC_SEGMENT_64` (sections), `LC_MAIN` (entry point = `text_vmbase + entryoff`), `LC_SYMTAB` (`nlist_64` entries, strips leading `_` from names).
+
+**Section naming:** `__TEXT,__text` → `.text`, `__DATA,__data` → `.data`, etc. Stripping the `__` prefix makes Mach-O sections use the same naming convention as ELF.
 
 ### `entropy.c` — Entropy, RDA, IVF
 

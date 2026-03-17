@@ -57,6 +57,8 @@ git clone https://github.com/VersaNexusIX/NeoDAX.git
 cd NeoDAX && make
 ```
 
+NeoDAX uses `arch/arm64_macos.S` (Mach-O syntax) on Apple Silicon and `arch/x86_64_macos.S` on Intel Mac — both selected automatically by the Makefile. macOS Mach-O binaries (including universal/FAT) are fully supported.
+
 ## FreeBSD / OpenBSD
 
 ```bash
@@ -174,3 +176,23 @@ node -p "require('path').join(process.execPath,'../../include/node')"
 
 **`open_memstream` not available:**
 Requires Linux glibc ≥ 2.10 or macOS ≥ 10.13. On older systems, upgrade or use Linux/Termux.
+
+---
+
+## npm Install (No Git Clone)
+
+```bash
+npm install neodax
+```
+
+The postinstall script automatically compiles the native addon:
+1. Checks for a prebuild in `js/prebuilds/neodax-<platform>-<arch>.node`
+2. Falls back to running `build_js.sh`
+3. Falls back to inline `clang`/`gcc` compile
+
+```js
+const neodax = require('neodax');
+neodax.withBinary('/bin/ls', bin => console.log(bin.arch));
+```
+
+See [NPM_USAGE.md](NPM_USAGE.md) for full examples.

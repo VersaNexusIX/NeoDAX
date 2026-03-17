@@ -125,3 +125,58 @@ The ARM64 runner requires GitHub's hosted ARM64 pool, available on GitHub Free w
 **Q: How do I add prebuilt binaries to avoid compilation on user machines?**
 
 Build on each platform, copy to `js/prebuilds/neodax-<platform>-<arch>.node`, commit, and publish. See the [PUBLISHING.md](PUBLISHING.md) prebuild section. The CI/CD pipeline does this automatically on tag push.
+
+---
+
+## Mach-O / macOS
+
+**Q: Does NeoDAX support macOS binaries?**
+
+Yes — NeoDAX v1.0.0 added a full Mach-O parser. It handles:
+- Single-arch Mach-O (ARM64 and x86-64)
+- FAT/universal binaries — automatically selects the ARM64 slice, falls back to x86-64
+- Section parsing (`__TEXT,__text` → `.text`, `__DATA,__data` → `.data`, etc.)
+- Entry point from `LC_MAIN`
+- Symbol table from `LC_SYMTAB`
+
+**Q: macOS `sections()` returns empty array.**
+
+This was caused by inverted Mach-O magic constants in v1.0.0-rc. Fixed in the current release. The real ARM64 LE magic is `0xFEEDFACF` (bytes `CF FA ED FE` on disk). If you see `sections: 0` with a Mach-O binary, you are on a pre-release build — update to the latest.
+
+**Q: macOS `functions()` returns empty on stripped binaries.**
+
+Fixed in v1.0.0. The function detector now recognises macOS ARM64 prologues: `sub sp, sp, #N` (most common pattern), any `stp xN, xM, [sp, #-N]!` pre-index, and uses the section entry point as a function boundary of last resort.
+
+**Q: `arch/arm64_bsd.S` assembler errors on macOS.**
+
+NeoDAX now uses `arch/arm64_macos.S` (Mach-O syntax) on macOS and `arch/x86_64_macos.S` on Intel Mac — selected automatically by the Makefile. The old `arm64_bsd.S` used ELF syntax (`.section .note.GNU-stack,"",@progbits`) which macOS assembler rejects.
+
+---
+
+## npm
+
+**Q: How do I use NeoDAX without git cloning?**
+
+```bash
+npm install neodax
+```
+
+`npm install` runs the postinstall script which compiles the native addon automatically. No git clone, no manual `make`.
+
+**Q: npm install says "No C compiler found".**
+
+Install clang or gcc:
+```bash
+# Debian/Ubuntu
+sudo apt install build-essential libnode-dev
+
+# macOS
+xcode-select --install
+
+# Termux
+pkg install clang
+```
+
+**Q: Can I ship prebuilt binaries so users don't need to compile?**
+
+Yes — build on each platform, copy `js/neodax.node` to `js/prebuilds/neodax-<platform>-<arch>.node`, commit, then `npm publish`. The installer checks `prebuilds/` first. The CI pipeline does this automatically on tag push via `prebuild.yml`.

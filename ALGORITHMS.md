@@ -27,6 +27,8 @@ Walk instructions sequentially. At each unconditional branch:
 
 Conditional branches register both the true target and the fall-through address during Pass 1, so neither side is ever treated as dead code.
 
+**Applies to all formats** — ELF, PE, and Mach-O use the same two-pass builder. Mach-O binaries often have jump tricks too (compiler optimisations, obfuscation).
+
 **Result for `nightmare4.c` jump trick:**
 ```asm
   b  2f              ; unconditional jump
@@ -97,7 +99,9 @@ Uses a BFS (Breadth-First Search) work queue:
 
 ### Coverage Metric
 
-After RDA completes, `covered_bytes / total_section_bytes × 100` gives a code coverage percentage. A 60–80% coverage on a typical ELF `.text` section is normal (alignment padding, switch table data, etc. account for the rest). Values below 40% suggest heavy obfuscation.
+After RDA completes, `covered_bytes / total_section_bytes × 100` gives a code coverage percentage.
+
+For Mach-O FAT binaries, NeoDAX selects the ARM64 slice before RDA, so RDA runs on the correct architecture slice. A 60–80% coverage on a typical ELF `.text` section is normal (alignment padding, switch table data, etc. account for the rest). Values below 40% suggest heavy obfuscation.
 
 ---
 

@@ -379,6 +379,8 @@ bin.decompile(funcIdx?)  bin.emulate(funcIdx?, initRegs?)
 // Detection
 bin.entropy()            bin.rda(section?)       bin.ivf()
 
+// Formats: ELF32/64 · PE32/PE64+ · Mach-O 64/FAT · Raw
+
 // Lifecycle
 bin.close()
 ```
