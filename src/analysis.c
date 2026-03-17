@@ -435,10 +435,28 @@ int dax_func_detect(dax_binary_t *bin, uint8_t *code, size_t code_size,
                 if (is_bl_tgt) {
                     in_func=1; cur_func_start=cur_addr;
                 } else {
+                    /* ARM64 function prologue patterns:
+                       - paciasp/autiasp: pointer auth (iOS/macOS)
+                       - bti c/j: branch target identification
+                       - stp x29,x30,[sp,#-N]!: frame pointer + link register save
+                       - stp xN,xM,[sp,#-N]!: any callee-saved register save with pre-index
+                       - sub sp,sp,#N: stack allocation (common macOS pattern)
+                       - entry point of section */
                     int is_pro =
                         !strcmp(insn.mnemonic,"paciasp") ||
+                        !strcmp(insn.mnemonic,"autiasp") ||
                         !strncmp(insn.mnemonic,"bti",3)  ||
-                        (!strcmp(insn.mnemonic,"stp") && strstr(insn.operands,"x29,x30"));
+                        /* stp with pre-index write-back into sp */
+                        (!strcmp(insn.mnemonic,"stp") &&
+                            (strstr(insn.operands,"x29,x30") ||
+                             strstr(insn.operands,"sp, #-")  ||
+                             strstr(insn.operands,"[sp, -")  ||
+                             strstr(insn.operands,"[sp,-"))) ||
+                        /* sub sp, sp, #N — stack frame allocation */
+                        (!strcmp(insn.mnemonic,"sub") &&
+                            strstr(insn.operands,"sp, sp,")) ||
+                        /* entry point of the section */
+                        (cur_addr == base_addr);
                     if (is_pro && bin->nfunctions < DAX_MAX_FUNCTIONS) {
                         dax_func_t *fn=&bin->functions[bin->nfunctions++];
                         fn->start=cur_addr; fn->end=0; fn->sym_idx=-1;
