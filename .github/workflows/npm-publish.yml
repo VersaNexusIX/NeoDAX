@@ -13,8 +13,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - run: npm install
+      - run: make js
       - run: npm test
+      - run: rm -f js/neodax.node
 
   publish-npm:
     needs: build
@@ -26,6 +29,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+
       - run: npm install
       - run: npm publish --access public
         env:
