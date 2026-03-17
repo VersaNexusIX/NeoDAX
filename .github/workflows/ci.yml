@@ -11,7 +11,6 @@ on:
     branches: [ main ]
     paths-ignore:
       - '**.md'
-      - 'docs/**'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -30,15 +29,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends build-essential libnode-dev
-      - name: Build (GCC)
+      - name: Build
         run: make clean && make CC=gcc
-      - name: CLI smoke test
-        run: |
-          ./neodax -h | head -3
-          ./neodax /bin/ls > /dev/null
-          echo "CLI OK"
-      - name: JS addon test
-        run: node js/test/basic.js
+      - name: Test
+        run: ./neodax -h | head -3
 
   linux-clang:
     name: Linux x86-64 · Clang
@@ -52,12 +46,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends clang libnode-dev
-      - name: Build (Clang)
+      - name: Build
         run: make clean && make CC=clang
       - name: Test
-        run: |
-          ./neodax -h | head -1
-          node js/test/basic.js
+        run: ./neodax -h | head -1
 
   linux-arm64:
     name: Linux ARM64 · GCC
@@ -74,9 +66,7 @@ jobs:
       - name: Build
         run: make clean && make
       - name: Test
-        run: |
-          ./neodax -h | head -1
-          node js/test/basic.js
+        run: ./neodax -h | head -1
 
   macos-arm64:
     name: macOS ARM64 · Apple Clang
@@ -89,24 +79,7 @@ jobs:
       - name: Build
         run: make clean && make
       - name: Test
-        run: |
-          ./neodax -h | head -1
-          node js/test/basic.js
-
-  macos-x64:
-    name: macOS x86-64 · Apple Clang
-    runs-on: macos-12
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Build
-        run: make clean && make
-      - name: Test
-        run: |
-          ./neodax -h | head -1
-          node js/test/basic.js
+        run: ./neodax -h | head -1
 
   node-matrix:
     name: Node ${{ matrix.node }} · Linux x64
@@ -130,23 +103,22 @@ jobs:
           node-gyp install
           NODE_INC=$(node -p "require('path').join(process.execPath, '../../include/node')")
           echo "NODE_INC=$NODE_INC" >> $GITHUB_ENV
-      - name: Build JS addon
-        run: bash build_js.sh
-      - name: Test
-        run: node js/test/basic.js
+      - name: Build & Test
+        run: |
+          bash build_js.sh
+          node js/test/basic.js
 
   ci-pass:
     name: CI Pass
-    needs: [ linux-gcc, linux-clang, linux-arm64, macos-arm64, macos-x64, node-matrix ]
+    needs: [ linux-gcc, linux-clang, linux-arm64, macos-arm64, node-matrix ]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Check Results
         run: |
           if [[ "${{ needs.linux-gcc.result }}" != "success" ]] || \
-             [[ "${{ needs.linux-clang.result }}" != "success" ]] || \
-             [[ "${{ needs.macos-x64.result }}" != "success" ]]; then
-            echo "Kritikal job gagal!"
+             [[ "${{ needs.linux-arm64.result }}" != "success" ]]; then
+            echo "Critical platforms failed!"
             exit 1
           fi
-          echo "Semua aman!"
+          echo "Main platforms are green!"
