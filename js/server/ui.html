@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeoDAX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080b0f; --bg1:#0d1117; --bg2:#111820; --bg3:#161d28; --bg4:#1c2536;
+  --border:#1e2d3d; --border2:#243244; --text:#cdd9e5; --dim:#768390; --dim2:#4d5d6e;
+  --yellow:#e3b341; --yellow2:#f0c955; --green:#3fb950; --green2:#56d364;
+  --blue:#58a6ff; --blue2:#79c0ff; --purple:#bc8cff; --purple2:#d2a8ff;
+  --red:#f85149; --red2:#ff7b72; --cyan:#39c5cf; --orange:#f0883e; --pink:#ff6b9d;
+  --accent:#1f6feb; --glow-y:rgba(227,179,65,.15); --glow-b:rgba(88,166,255,.12);
+  --mono:'JetBrains Mono',monospace; --sans:'Space Grotesk',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+::selection{background:rgba(227,179,65,.25);color:var(--yellow2)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 4px);pointer-events:none;z-index:9999}
+
+/* ── HEADER ── */
+header{background:var(--bg1);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:20px;flex-shrink:0;position:relative}
+header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--yellow) 30%,var(--blue) 70%,transparent);opacity:.25}
+.logo-wrap{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-glyph{width:32px;height:32px;background:var(--yellow);clip-path:polygon(20% 0%,80% 0%,100% 20%,100% 80%,80% 100%,20% 100%,0% 80%,0% 20%);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:13px;color:#000;flex-shrink:0}
+.logo-text-block{display:flex;flex-direction:column;line-height:1}
+.logo-name{font-family:var(--mono);font-weight:700;font-size:15px;color:var(--yellow);letter-spacing:.05em}
+.logo-ver{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.08em;margin-top:2px}
+.file-bar{flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:0 12px;height:34px;transition:border-color .2s}
+.file-bar:focus-within{border-color:var(--yellow);box-shadow:0 0 0 3px var(--glow-y)}
+.file-bar .prompt{font-family:var(--mono);font-size:11px;color:var(--yellow);opacity:.6;flex-shrink:0}
+.file-bar input{flex:1;background:none;border:none;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;min-width:0}
+.file-bar input::placeholder{color:var(--dim2)}
+.btn-analyze{background:var(--yellow);color:#000;border:none;padding:7px 18px;border-radius:5px;font-family:var(--sans);font-weight:700;font-size:12px;letter-spacing:.04em;cursor:pointer;flex-shrink:0;transition:background .15s,transform .1s;position:relative;overflow:hidden}
+.btn-analyze:hover{background:var(--yellow2)}
+.btn-analyze:active{transform:scale(.97)}
+.btn-analyze.loading{background:var(--dim2);cursor:not-allowed}
+.btn-analyze.loading::after{content:'';position:absolute;left:-100%;top:0;bottom:0;width:60%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:shimmer .8s infinite}
+@keyframes shimmer{to{left:200%}}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--dim2);flex-shrink:0;transition:background .3s}
+.status-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot.err{background:var(--red);box-shadow:0 0 6px var(--red)}
+.status-dot.busy{background:var(--yellow);animation:pulse-dot 1s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
+.status-text{font-family:var(--mono);font-size:11px;color:var(--dim);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+.status-text.ok{color:var(--green2)}.status-text.err{color:var(--red2)}
+.header-meta{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto}
+.meta-chip{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:10px;color:var(--dim);display:none}
+.meta-chip.visible{display:block}.meta-chip .chip-val{color:var(--blue2)}
+
+/* ── LAYOUT ── */
+.workspace{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:196px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.nav-group{padding:14px 0 4px}
+.nav-group-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);padding:0 16px 6px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:6px 16px;cursor:pointer;color:var(--dim);font-size:12px;font-weight:500;border-left:2px solid transparent;transition:all .12s;position:relative}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--yellow);border-left-color:var(--yellow);background:linear-gradient(90deg,var(--glow-y),transparent)}
+.nav-icon{font-size:12px;width:14px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;font-family:var(--mono);font-size:9px;color:var(--dim);padding:1px 5px;min-width:20px;text-align:center;white-space:nowrap}
+.nav-item.active .nav-badge{border-color:rgba(227,179,65,.3);color:var(--yellow)}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:1.7}
+
+/* ── CONTENT ── */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.panel{flex:1;overflow-y:auto;overflow-x:hidden;padding:18px 22px;display:none;animation:fadeIn .15s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+/* ── OVERVIEW ── */
+.ov-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:16px;flex-wrap:wrap}
+.binary-name{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text)}
+.binary-path{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:3px}
+.pill-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:10px;font-family:var(--mono);font-size:10px;font-weight:700;border:1px solid;letter-spacing:.03em}
+.pill-arch{color:var(--blue);border-color:rgba(88,166,255,.3);background:rgba(88,166,255,.08)}
+.pill-fmt{color:var(--purple);border-color:rgba(188,140,255,.3);background:rgba(188,140,255,.08)}
+.pill-os{color:var(--cyan);border-color:rgba(57,197,207,.3);background:rgba(57,197,207,.08)}
+.pill-pie{color:var(--green);border-color:rgba(63,185,80,.3);background:rgba(63,185,80,.08)}
+.pill-stripped{color:var(--red);border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.08)}
+.pill-debug{color:var(--yellow);border-color:rgba(227,179,65,.3);background:rgba(227,179,65,.08)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px;margin-bottom:18px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c,var(--border));opacity:.7}
+.stat-card[data-c="y"]::before{--c:var(--yellow)}.stat-card[data-c="b"]::before{--c:var(--blue)}
+.stat-card[data-c="g"]::before{--c:var(--green)}.stat-card[data-c="p"]::before{--c:var(--purple)}
+.stat-card[data-c="c"]::before{--c:var(--cyan)}.stat-card[data-c="o"]::before{--c:var(--orange)}
+.stat-card[data-c="r"]::before{--c:var(--red2)}
+.stat-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);margin-bottom:5px}
+.stat-value{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);line-height:1;margin-bottom:2px}
+.stat-sub{font-family:var(--mono);font-size:10px;color:var(--dim2)}
+.hash-row{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;margin-bottom:8px}
+.hash-lbl{color:var(--dim);flex-shrink:0;width:68px;font-size:10px;letter-spacing:.05em;text-transform:uppercase}
+.hash-val{color:var(--dim);word-break:break-all;flex:1;font-size:10.5px}
+.hash-val.sha{color:rgba(88,166,255,.65)}
+.hash-copy{flex-shrink:0;padding:2px 7px;border-radius:4px;background:var(--bg4);border:1px solid var(--border);color:var(--dim);font-size:10px;cursor:pointer;font-family:var(--sans);transition:all .12s}
+.hash-copy:hover{border-color:var(--blue);color:var(--blue)}
+
+/* hottest fns */
+.hot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-top:14px}
+.hot-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 13px;display:flex;align-items:center;gap:10px}
+.hot-rank{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--border2);width:26px;flex-shrink:0}
+.hot-rank.top3{color:var(--yellow)}
+.hot-info{flex:1;min-width:0}
+.hot-name{font-family:var(--mono);font-size:11px;color:var(--yellow);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hot-addr{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
+.hot-calls{font-family:var(--mono);font-size:11px;color:var(--red2);flex-shrink:0;text-align:right}
+.hot-calls small{display:block;font-size:9px;color:var(--dim)}
+
+/* ── TABLE WRAPPER ── */
+.table-wrap{overflow-x:auto;border-radius:7px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+thead tr{background:var(--bg3)}
+th{text-align:left;padding:8px 13px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);border-bottom:1px solid var(--border);white-space:nowrap;font-family:var(--sans)}
+td{padding:6px 13px;border-bottom:1px solid rgba(30,45,61,.6);vertical-align:middle;white-space:nowrap;overflow:hidden;max-width:0}
+.td-name{max-width:220px;overflow:hidden;text-overflow:ellipsis}
+tbody tr{transition:background .08s}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+tbody tr:last-child td{border-bottom:none}
+.td-wide{white-space:normal;word-break:break-word}
+
+/* ── TAGS ── */
+.tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--sans);letter-spacing:.02em;border:1px solid}
+.t-code{background:rgba(88,166,255,.1);color:var(--blue);border-color:rgba(88,166,255,.2)}
+.t-data{background:rgba(227,179,65,.1);color:var(--yellow);border-color:rgba(227,179,65,.2)}
+.t-rodata{background:rgba(63,185,80,.1);color:var(--green);border-color:rgba(63,185,80,.2)}
+.t-bss{background:rgba(77,93,110,.1);color:var(--dim);border-color:rgba(77,93,110,.2)}
+.t-plt{background:rgba(188,140,255,.1);color:var(--purple);border-color:rgba(188,140,255,.2)}
+.t-got{background:rgba(188,140,255,.07);color:var(--purple);border-color:rgba(188,140,255,.15)}
+.t-dynamic{background:rgba(240,136,62,.1);color:var(--orange);border-color:rgba(240,136,62,.2)}
+.t-debug{background:rgba(77,93,110,.07);color:var(--dim2);border-color:var(--border)}
+.t-other{background:rgba(77,93,110,.05);color:var(--dim2);border-color:var(--border)}
+.t-function{background:rgba(88,166,255,.1);color:var(--blue);border-color:rgba(88,166,255,.2)}
+.t-import{background:rgba(240,136,62,.1);color:var(--orange);border-color:rgba(240,136,62,.2)}
+.t-export{background:rgba(63,185,80,.1);color:var(--green);border-color:rgba(63,185,80,.2)}
+.t-weak{background:rgba(77,93,110,.08);color:var(--dim);border-color:var(--border)}
+.t-local{background:rgba(77,93,110,.06);color:var(--dim2);border-color:var(--border)}
+.t-unknown{background:rgba(77,93,110,.05);color:var(--dim2);border-color:var(--border)}
+.t-call{background:rgba(248,81,73,.08);color:var(--red2);border-color:rgba(248,81,73,.2)}
+.t-jump{background:rgba(240,136,62,.08);color:var(--orange);border-color:rgba(240,136,62,.2)}
+.t-entry{background:rgba(227,179,65,.12);color:var(--yellow);border-color:rgba(227,179,65,.3)}
+.t-utf8{background:rgba(88,166,255,.1);color:var(--blue);border-color:rgba(88,166,255,.2)}
+.t-utf16le{background:rgba(227,179,65,.1);color:var(--yellow);border-color:rgba(227,179,65,.2)}
+.t-utf16be{background:rgba(188,140,255,.1);color:var(--purple);border-color:rgba(188,140,255,.2)}
+.t-ascii{background:rgba(77,93,110,.08);color:var(--dim);border-color:var(--border)}
+.t-entry-blk{background:rgba(63,185,80,.1);color:var(--green);border-color:rgba(63,185,80,.2)}
+.t-exit-blk{background:rgba(248,81,73,.08);color:var(--red2);border-color:rgba(248,81,73,.2)}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:13px;flex-wrap:wrap}
+.tb-in{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:5px;font-family:var(--mono);font-size:11px;outline:none;min-width:0;transition:border-color .15s}
+.tb-in:focus{border-color:var(--yellow)}.tb-in::placeholder{color:var(--dim2)}
+.tb-sel{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:5px;font-size:11px;font-family:var(--sans);outline:none;cursor:pointer}
+.tb-btn{background:var(--bg3);border:1px solid var(--border);color:var(--dim);padding:5px 11px;border-radius:5px;font-size:11px;font-family:var(--sans);cursor:pointer;transition:all .12s;font-weight:500}
+.tb-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+.rc{font-family:var(--mono);font-size:10px;color:var(--dim);margin-left:auto;white-space:nowrap}
+
+/* ── PANEL HEADER ── */
+.panel-header{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.panel-title{font-family:var(--sans);font-size:14px;font-weight:700;color:var(--text)}
+.panel-count{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:2px 8px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+
+/* ── DISASM ── */
+.disasm-wrap{background:var(--bg1);border:1px solid var(--border);border-radius:7px;overflow:auto;position:relative}
+.da-tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+.da-tbl td{padding:2px 13px;border:none;vertical-align:middle}
+.da-tbl tr{transition:background .06s}.da-tbl tr:hover{background:rgba(227,179,65,.03)}
+.da-tbl tr.sym-sep td{padding-top:9px;border-top:1px solid rgba(188,140,255,.1)}
+.d-addr{color:rgba(88,166,255,.55);user-select:none;width:130px}
+.d-bytes{color:var(--dim2);width:130px;font-size:10.5px}
+.d-mnem{width:88px;font-weight:500;color:var(--yellow)}
+.d-mnem.call{color:var(--red2)}.d-mnem.ret{color:var(--pink)}
+.d-mnem.branch{color:var(--orange)}.d-mnem.stack{color:var(--purple2)}
+.d-mnem.nop{color:var(--dim2)}.d-mnem.syscall{color:var(--red)}
+.d-ops{color:var(--cyan)}.d-grp{color:var(--dim2);font-size:10px;width:78px}
+.d-sym{display:block;color:var(--purple2);padding:5px 13px 2px;font-size:11px}
+
+/* ── STRINGS ── */
+.str-val{color:var(--green2);max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.uni-val{color:var(--cyan);max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+
+/* ── SIZE BAR ── */
+.size-bar{display:inline-block;height:3px;border-radius:2px;background:var(--yellow);opacity:.35;vertical-align:middle;margin-right:5px;max-width:48px}
+
+/* ── PROGRESS BAR ── */
+.load-progress{position:fixed;top:52px;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--yellow),var(--blue));transform-origin:left;transform:scaleX(0);transition:transform .3s ease;z-index:100}
+
+/* ── EMPTY / LOADING ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;gap:10px;color:var(--dim2);font-size:13px;text-align:center}
+.empty-icon{font-size:28px;opacity:.35}.empty-title{color:var(--dim);font-weight:600}.empty-sub{font-family:var(--mono);font-size:11px;color:var(--dim2)}
+.spinner{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--yellow);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-row{display:flex;align-items:center;gap:10px;color:var(--dim);padding:30px 20px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--bg4);border:1px solid var(--border2);border-radius:5px;padding:9px 15px;font-size:12px;color:var(--text);transform:translateY(16px);opacity:0;transition:all .18s;z-index:9998;pointer-events:none}
+.toast.show{transform:none;opacity:1}
+
+/* ── COLORS ── */
+.addr{color:var(--blue2)}.mono{font-family:var(--mono)}.c-y{color:var(--yellow)}.c-g{color:var(--green2)}.c-p{color:var(--purple2)}.c-d{color:var(--dim)}.c-d2{color:var(--dim2)}.c-r{color:var(--red2)}.c-o{color:var(--orange)}
+</style>
+</head>
+<body>
+<div class="load-progress" id="progress"></div>
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="logo-wrap">
+    <div class="logo-glyph">N</div>
+    <div class="logo-text-block">
+      <span class="logo-name">NEODAX</span>
+      <span class="logo-ver">v1.0.0 · BINARY ANALYSIS</span>
+    </div>
+  </div>
+  <div class="file-bar">
+    <span class="prompt">$</span>
+    <input id="fileInput" type="text" placeholder="/path/to/binary — e.g. /bin/ls or /data/app/target.so" spellcheck="false" autocomplete="off">
+    <div class="status-dot" id="sdot"></div>
+    <span class="status-text" id="stxt">ready</span>
+  </div>
+  <button class="btn-analyze" id="analyzeBtn" onclick="doLoad()">ANALYZE</button>
+  <div class="header-meta">
+    <div class="meta-chip" id="chip-arch"><span class="chip-val" id="cv-arch"></span></div>
+    <div class="meta-chip" id="chip-fmt"><span class="chip-val" id="cv-fmt"></span></div>
+    <div class="meta-chip" id="chip-sz"><span class="chip-val" id="cv-sz"></span></div>
+  </div>
+</header>
+
+<div class="workspace">
+  <nav class="sidebar">
+    <div class="nav-group">
+      <div class="nav-group-label">Binary</div>
+      <div class="nav-item active" data-p="overview"  onclick="go('overview')"> <span class="nav-icon">◈</span> Overview   <span class="nav-badge" id="nb-overview">—</span></div>
+      <div class="nav-item"        data-p="sections"  onclick="go('sections')"> <span class="nav-icon">▤</span> Sections   <span class="nav-badge" id="nb-sections">0</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Code</div>
+      <div class="nav-item" data-p="symbols"   onclick="go('symbols')">  <span class="nav-icon">⊕</span> Symbols    <span class="nav-badge" id="nb-symbols">0</span></div>
+      <div class="nav-item" data-p="functions" onclick="go('functions')"><span class="nav-icon">ƒ</span> Functions  <span class="nav-badge" id="nb-functions">0</span></div>
+      <div class="nav-item" data-p="blocks"    onclick="go('blocks')">   <span class="nav-icon">⬡</span> CFG Blocks <span class="nav-badge" id="nb-blocks">0</span></div>
+      <div class="nav-item" data-p="xrefs"     onclick="go('xrefs')">    <span class="nav-icon">↗</span> Xrefs      <span class="nav-badge" id="nb-xrefs">0</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Data</div>
+      <div class="nav-item" data-p="strings"  onclick="go('strings')"> <span class="nav-icon">≡</span> Strings    <span class="nav-badge" id="nb-strings">0</span></div>
+      <div class="nav-item" data-p="unicode"  onclick="go('unicode')"> <span class="nav-icon">⌘</span> Unicode    <span class="nav-badge" id="nb-unicode">0</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Disassembly</div>
+      <div class="nav-item" data-p="disasm" onclick="go('disasm')"><span class="nav-icon">⚙</span> Disassemble <span class="nav-badge" id="nb-disasm">—</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Advanced</div>
+      <div class="nav-item" data-p="decompile" onclick="go('decompile')"><span class="nav-icon">◈</span> Decompiler  <span class="nav-badge" id="nb-decomp">—</span></div>
+      <div class="nav-item" data-p="ssa"       onclick="go('ssa')">      <span class="nav-icon">φ</span> SSA Form    <span class="nav-badge" id="nb-ssa">—</span></div>
+      <div class="nav-item" data-p="symexec"   onclick="go('symexec')">  <span class="nav-icon">∑</span> Sym Exec    <span class="nav-badge" id="nb-sym">—</span></div>
+      <div class="nav-item" data-p="emulate"   onclick="go('emulate')">  <span class="nav-icon">▶</span> Emulator    <span class="nav-badge" id="nb-emu">—</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Detection</div>
+      <div class="nav-item" data-p="entropy" onclick="go('entropy')"><span class="nav-icon">∿</span> Entropy     <span class="nav-badge" id="nb-entropy">—</span></div>
+      <div class="nav-item" data-p="rda"     onclick="go('rda')">    <span class="nav-icon">⤷</span> Rec. Descent <span class="nav-badge" id="nb-rda">—</span></div>
+      <div class="nav-item" data-p="ivf"     onclick="go('ivf')">    <span class="nav-icon">⚑</span> Validity    <span class="nav-badge" id="nb-ivf">—</span></div>
+    </div>
+    <div class="sidebar-footer">
+      NeoDAX v1.0.0<br>Node-API native addon<br>
+      <span style="color:var(--border2)">─────────────</span><br>
+      POST /api/* → JSON
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="panel-overview">
+      <div id="ov-empty" class="empty">
+        <div class="empty-icon">◈</div>
+        <div class="empty-title">No binary loaded</div>
+        <div class="empty-sub">Enter a file path above and click ANALYZE</div>
+      </div>
+      <div id="ov-content" style="display:none">
+        <div class="ov-top" id="ov-top"></div>
+        <div class="stats-grid" id="ov-stats"></div>
+        <div id="ov-hashes"></div>
+        <div id="ov-hot" style="margin-top:18px"></div>
+      </div>
+    </div>
+
+    <!-- SECTIONS -->
+    <div class="panel" id="panel-sections">
+      <div class="panel-header"><span class="panel-title">Sections</span><span class="panel-count" id="pc-sections">0</span></div>
+      <div id="sec-body"><div class="empty"><div class="empty-icon">▤</div><div class="empty-title">No data</div></div></div>
+    </div>
+
+    <!-- SYMBOLS -->
+    <div class="panel" id="panel-symbols">
+      <div class="panel-header"><span class="panel-title">Symbols</span><span class="panel-count" id="pc-symbols">0</span></div>
+      <div class="toolbar">
+        <input class="tb-in" id="sym-q" placeholder="search name…" oninput="renderSymbols()" style="width:200px">
+        <select class="tb-sel" id="sym-type" onchange="renderSymbols()">
+          <option value="">All types</option>
+          <option>function</option><option>import</option><option>export</option>
+          <option>object</option><option>weak</option><option>local</option>
+        </select>
+        <span class="rc" id="sym-rc"></span>
+      </div>
+      <div id="sym-body"><div class="empty"><div class="empty-icon">⊕</div><div class="empty-title">No data</div></div></div>
+    </div>
+
+    <!-- FUNCTIONS -->
+    <div class="panel" id="panel-functions">
+      <div class="panel-header"><span class="panel-title">Functions</span><span class="panel-count" id="pc-functions">0</span></div>
+      <div class="toolbar">
+        <input class="tb-in" id="fn-q" placeholder="search name…" oninput="renderFunctions()" style="width:200px">
+        <select class="tb-sel" id="fn-sort" onchange="renderFunctions()">
+          <option value="addr">By address</option>
+          <option value="size">By size ↓</option>
+          <option value="name">By name</option>
+        </select>
+        <span class="rc" id="fn-rc"></span>
+      </div>
+      <div id="fn-body"><div class="empty"><div class="empty-icon">ƒ</div><div class="empty-title">No data</div></div></div>
+    </div>
+
+    <!-- BLOCKS / CFG -->
+    <div class="panel" id="panel-blocks">
+      <div class="panel-header"><span class="panel-title">CFG Basic Blocks</span><span class="panel-count" id="pc-blocks">0</span></div>
+      <div class="toolbar">
+        <input class="tb-in" id="blk-q" placeholder="filter by func index…" oninput="renderBlocks()" style="width:180px">
+        <span class="rc" id="blk-rc"></span>
+      </div>
+      <div id="blk-body"><div class="empty"><div class="empty-icon">⬡</div><div class="empty-title">No data</div></div></div>
+    </div>
+
+    <!-- XREFS -->
+    <div class="panel" id="panel-xrefs">
+      <div class="panel-header"><span class="panel-title">Cross-References</span><span class="panel-count" id="pc-xrefs">0</span></div>
+      <div class="toolbar">
+        <select class="tb-sel" id="xref-type" onchange="renderXrefs()">
+          <option value="">All</option><option value="call">Calls</option><option value="jump">Jumps</option>
+        </select>
+        <input class="tb-in" id="xref-q" placeholder="search addr…" oninput="renderXrefs()" style="width:160px">
+        <span class="rc" id="xref-rc"></span>
+      </div>
+      <div id="xref-body"><div class="empty"><div class="empty-icon">↗</div><div class="empty-title">No data</div></div></div>
+    </div>
+
+    <!-- STRINGS -->
+    <div class="panel" id="panel-strings">
+      <div class="panel-header"><span class="panel-title">ASCII Strings</span><span class="panel-count" id="pc-strings">0</span></div>
+      <div class="toolbar">
+        <input class="tb-in" id="str-q" placeholder="search value…" oninput="renderStrings()" style="width:220px">
+        <input class="tb-in" id="str-minlen" value="4" style="width:60px" title="Min length" oninput="renderStrings()">
+        <span class="rc" id="str-rc"></span>
+      </div>
+      <div id="str-body"><div class="empty"><div class="empty-icon">≡</div><div class="empty-title">No data</div></div></div>
+    </div>
+
+    <!-- UNICODE -->
+    <div class="panel" id="panel-unicode">
+      <div class="panel-header"><span class="panel-title">Unicode Strings</span><span class="panel-count" id="pc-unicode">0</span></div>
+      <div class="toolbar">
+        <input class="tb-in" id="uni-q" placeholder="search value…" oninput="renderUnicode()" style="width:220px">
+        <select class="tb-sel" id="uni-enc" onchange="renderUnicode()">
+          <option value="">All encodings</option>
+          <option value="utf-8">UTF-8</option><option value="utf-16le">UTF-16LE</option>
+          <option value="utf-16be">UTF-16BE</option><option value="ascii">ASCII</option>
+        </select>
+        <span class="rc" id="uni-rc"></span>
+      </div>
+      <div id="uni-body"><div class="empty"><div class="empty-icon">⌘</div><div class="empty-title">No data</div></div></div>
+    </div>
+
+    <!-- DISASM -->
+    <div class="panel" id="panel-disasm">
+      <div class="panel-header">
+        <span class="panel-title">Disassembly</span>
+        <span class="panel-count" id="pc-disasm">0 insns</span>
+      </div>
+      <div class="toolbar">
+        <select class="tb-sel" id="da-sec" onchange="renderDisasm()"></select>
+        <select class="tb-sel" id="da-mode" onchange="renderDisasm()">
+          <option value="json">Structured</option><option value="text">Plain text</option>
+        </select>
+        <select class="tb-sel" id="da-grp" onchange="renderDisasm()">
+          <option value="">All groups</option>
+          <option>call</option><option>branch</option><option>return</option>
+          <option>arithmetic</option><option>data-move</option><option>compare</option>
+          <option>stack</option><option>syscall</option><option>nop</option>
+        </select>
+        <input class="tb-in" id="da-limit" value="400" style="width:60px" title="Max insns">
+        <input class="tb-in" id="da-search" placeholder="filter mnem/ops…" oninput="filterDisasm()" style="width:150px">
+        <button class="tb-btn" onclick="renderDisasm()">↺</button>
+        <span class="rc" id="da-rc"></span>
+      </div>
+      <div id="da-body" style="position:relative">
+        <div class="empty"><div class="empty-icon">⚙</div><div class="empty-title">No data</div></div>
+      </div>
+    </div>
+
+    <!-- DECOMPILE -->
+    <div class="panel" id="panel-decompile">
+      <div class="panel-header"><span class="panel-title">Decompiler</span><span class="panel-count" id="pc-decomp"></span></div>
+      <div class="toolbar">
+        <select class="tb-sel" id="dc-fn"></select>
+        <button class="tb-btn" onclick="runDecompile()">▶ Decompile</button>
+      </div>
+      <div id="dc-body"><div class="empty"><div class="empty-icon">◈</div><div class="empty-title">Select a function and click Decompile</div><div class="empty-sub">ARM64 binaries supported</div></div></div>
+    </div>
+
+    <!-- SSA -->
+    <div class="panel" id="panel-ssa">
+      <div class="panel-header"><span class="panel-title">SSA Form</span><span class="panel-count" id="pc-ssa"></span></div>
+      <div class="toolbar">
+        <select class="tb-sel" id="ssa-fn"></select>
+        <button class="tb-btn" onclick="runSsa()">▶ Lift to SSA</button>
+      </div>
+      <div id="ssa-body"><div class="empty"><div class="empty-icon">φ</div><div class="empty-title">Select a function and click Lift to SSA</div></div></div>
+    </div>
+
+    <!-- SYMEXEC -->
+    <div class="panel" id="panel-symexec">
+      <div class="panel-header"><span class="panel-title">Symbolic Execution</span><span class="panel-count" id="pc-sym"></span></div>
+      <div class="toolbar">
+        <select class="tb-sel" id="sym-fn"></select>
+        <button class="tb-btn" onclick="runSymexec()">▶ Execute Symbolically</button>
+      </div>
+      <div id="sym-body"><div class="empty"><div class="empty-icon">∑</div><div class="empty-title">Select a function and click Execute Symbolically</div></div></div>
+    </div>
+
+    <!-- ENTROPY -->
+    <div class="panel" id="panel-entropy">
+      <div class="panel-header"><span class="panel-title">Entropy Analysis</span><span class="panel-count" id="pc-entropy"></span></div>
+      <div class="toolbar">
+        <button class="tb-btn" onclick="runEntropy()">▶ Scan Entropy</button>
+        <span class="c-d2" style="font-size:10px;font-family:var(--mono)">sliding window 256B — detects packed/encrypted regions</span>
+      </div>
+      <div id="entropy-body"><div class="empty"><div class="empty-icon">∿</div><div class="empty-title">Click Scan Entropy</div><div class="empty-sub">Shannon entropy per section — high ≥ 6.8 bits, packed ≥ 7.0</div></div></div>
+    </div>
+
+    <!-- RDA -->
+    <div class="panel" id="panel-rda">
+      <div class="panel-header"><span class="panel-title">Recursive Descent</span><span class="panel-count" id="pc-rda"></span></div>
+      <div class="toolbar">
+        <select class="tb-sel" id="rda-sec"></select>
+        <button class="tb-btn" onclick="runRda()">▶ Disassemble</button>
+        <span class="c-d2" style="font-size:10px;font-family:var(--mono)">follows control flow — marks dead bytes</span>
+      </div>
+      <div id="rda-body"><div class="empty"><div class="empty-icon">⤷</div><div class="empty-title">Select section and click Disassemble</div></div></div>
+    </div>
+
+    <!-- IVF -->
+    <div class="panel" id="panel-ivf">
+      <div class="panel-header"><span class="panel-title">Instruction Validity Filter</span><span class="panel-count" id="pc-ivf"></span></div>
+      <div class="toolbar">
+        <button class="tb-btn" onclick="runIvf()">▶ Scan</button>
+        <span class="c-d2" style="font-size:10px;font-family:var(--mono)">invalid opcodes, privileged, NOP-runs, dead bytes</span>
+      </div>
+      <div id="ivf-body"><div class="empty"><div class="empty-icon">⚑</div><div class="empty-title">Click Scan to check instruction validity</div></div></div>
+    </div>
+
+    <!-- EMULATE -->
+    <div class="panel" id="panel-emulate">
+      <div class="panel-header"><span class="panel-title">Emulator</span><span class="panel-count" id="pc-emu"></span></div>
+      <div class="toolbar">
+        <select class="tb-sel" id="emu-fn"></select>
+        <input class="tb-in" id="emu-r0" value="0" style="width:72px" placeholder="x0">
+        <input class="tb-in" id="emu-r1" value="1" style="width:72px" placeholder="x1">
+        <input class="tb-in" id="emu-r2" value="0" style="width:72px" placeholder="x2">
+        <button class="tb-btn" onclick="runEmulate()">▶ Emulate</button>
+        <span class="c-d2" style="font-size:10px;font-family:var(--mono)">initial: x0 x1 x2</span>
+      </div>
+      <div id="emu-body"><div class="empty"><div class="empty-icon">▶</div><div class="empty-title">Select a function and click Emulate</div><div class="empty-sub">Concrete execution engine — ARM64</div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = window.NEODAX_API_URL || 'http://localhost:7070';
+
+const S = {
+  file:null, info:null,
+  sections:[], symbols:[], functions:[], blocks:[],
+  xrefs:[], strings:[], unicode:[],
+  allInsns:[], hottest:[],
+};
+
+const $  = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function fmtSize(v) {
+  const s = String(v??'');
+  const n = s.startsWith('0x') ? parseInt(s,16) : parseFloat(s);
+  if (isNaN(n)||n===0) return '0';
+  if (n>=1048576) return (n/1048576).toFixed(1)+' MB';
+  if (n>=1024)    return (n/1024).toFixed(1)+' KB';
+  return n.toLocaleString()+' B';
+}
+
+function fmtFlags(f) {
+  if (!f) return '';
+  return `[${(f&0x4||f&0x20000000)?'x':'-'}${f&0x2?'w':'-'}${f&0x1?'r':'-'}]`;
+}
+
+function toNum(v) {
+  const s=String(v??'');
+  return s.startsWith('0x')?parseInt(s,16):parseInt(s,10)||0;
+}
+
+let toastT;
+function toast(msg,ms=2000){
+  const t=$('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms);
+}
+function copyText(t){navigator.clipboard.writeText(t).then(()=>toast('Copied!')).catch(()=>toast('Copy failed'))}
+
+function setProgress(p){$('progress').style.transform=`scaleX(${p})`}
+
+function setStatus(state,msg){
+  $('sdot').className='status-dot '+state;
+  const t=$('stxt');t.className='status-text '+state;t.textContent=msg;
+}
+
+function go(name){
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.toggle('active',e.dataset.p===name));
+  document.querySelectorAll('.panel').forEach(e=>e.classList.toggle('active',e.id==='panel-'+name));
+  if(name==='disasm' && S.file && S.allInsns.length===0) renderDisasm();
+}
+
+function populateRdaSel(){
+  const sel=$('rda-sec'); if(!sel)return; sel.innerHTML='';
+  const code=S.sections.filter(s=>s.type==='code'||s.type==='plt');
+  (code.length?code:[{name:'.text'}]).forEach(s=>{
+    const o=document.createElement('option'); o.value=s.name; o.textContent=s.name; sel.appendChild(o);
+  });
+}
+
+async function post(route,body){
+  const r=await fetch(API+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error||r.statusText);
+  return d;
+}
+
+async function doLoad(){
+  const file=$('fileInput').value.trim();
+  if(!file){$('fileInput').focus();return;}
+  const btn=$('analyzeBtn');
+  btn.textContent='LOADING…';btn.classList.add('loading');
+  setStatus('busy','Loading…');setProgress(.08);
+
+  try{
+    setProgress(.15);setStatus('busy','Parsing binary…');
+    const [infoR,secR]=await Promise.all([post('/api/info',{file}),post('/api/sections',{file})]);
+    setProgress(.35);setStatus('busy','Symbols & functions…');
+    const [symR,fnR]=await Promise.all([post('/api/symbols',{file}),post('/api/functions',{file})]);
+    setProgress(.55);setStatus('busy','Xrefs & strings…');
+    const [xrR,strR,uniR]=await Promise.all([
+      post('/api/xrefs',{file}),
+      post('/api/strings',{file}),
+      post('/api/unicode',{file}),
+    ]);
+    setProgress(.75);setStatus('busy','CFG & hottest…');
+    const [blkR,hotR]=await Promise.all([
+      post('/api/blocks',{file}),
+      post('/api/hottest',{file,n:10}),
+    ]);
+    setProgress(.95);
+
+    S.file=file; S.info=infoR;
+    S.sections=secR.sections; S.symbols=symR.symbols;
+    S.functions=fnR.functions; S.xrefs=xrR.xrefs;
+    S.strings=strR.strings; S.unicode=uniR.unicodeStrings;
+    S.blocks=blkR.blocks; S.hottest=hotR.hottest;
+
+    updateBadges(); updateChips();
+    renderOverview(); renderSections(); renderSymbols(); renderFunctions();
+    renderBlocks(); renderXrefs(); renderStrings(); renderUnicode();
+    populateSectionSel();
+        populateFnDropdowns();
+        populateRdaSel();
+
+    setProgress(1);
+    const name=file.split('/').pop();
+    setStatus('ok',`${name} · ${S.sections.length}sec · ${S.functions.length}fn · ${S.xrefs.length}xref`);
+    setTimeout(()=>setProgress(0),600);
+
+  }catch(e){
+    setStatus('err',e.message);setProgress(0);toast('Error: '+e.message,4000);
+  }finally{
+    btn.textContent='ANALYZE';btn.classList.remove('loading');
+  }
+}
+
+$('fileInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLoad();});
+
+function updateBadges(){
+  const i=S.info;
+  $('nb-overview').textContent='✓';
+  $('nb-sections').textContent=S.sections.length;
+  $('nb-symbols').textContent=S.symbols.length;
+  $('nb-functions').textContent=S.functions.length;
+  $('nb-blocks').textContent=S.blocks.length>999?'999+':S.blocks.length;
+  $('nb-xrefs').textContent=S.xrefs.length>999?'999+':S.xrefs.length;
+  $('nb-strings').textContent=S.strings.length>999?'999+':S.strings.length;
+  $('nb-unicode').textContent=S.unicode.length;
+  $('pc-sections').textContent=S.sections.length;
+  $('pc-symbols').textContent=S.symbols.length;
+  $('pc-functions').textContent=S.functions.length;
+  $('pc-blocks').textContent=S.blocks.length;
+  $('pc-xrefs').textContent=S.xrefs.length;
+  $('pc-strings').textContent=S.strings.length;
+  $('pc-unicode').textContent=S.unicode.length;
+}
+
+function updateChips(){
+  const i=S.info;
+  $('cv-arch').textContent=i.arch; $('cv-fmt').textContent=i.format;
+  $('cv-sz').textContent=fmtSize(i.imageSize||i.codeSize);
+  ['chip-arch','chip-fmt','chip-sz'].forEach(id=>$(id).classList.add('visible'));
+}
+
+/* ── OVERVIEW ── */
+function renderOverview(){
+  const i=S.info;
+  $('ov-empty').style.display='none'; $('ov-content').style.display='';
+
+  const name=(i.file||'').split('/').pop();
+  const badges=[
+    {c:'pill-arch',t:i.arch},{c:'pill-fmt',t:i.format},{c:'pill-os',t:i.os},
+    i.isPie?{c:'pill-pie',t:'PIE'}:null,
+    i.isStripped?{c:'pill-stripped',t:'STRIPPED'}:null,
+    i.hasDebug?{c:'pill-debug',t:'DEBUG'}:null,
+  ].filter(Boolean);
+
+  $('ov-top').innerHTML=`
+    <div>
+      <div class="binary-name">${esc(name)}</div>
+      <div class="binary-path">${esc(i.file)}</div>
+      <div class="pill-row">${badges.map(b=>`<span class="pill ${b.c}">${esc(b.t)}</span>`).join('')}</div>
+    </div>`;
+
+  const stats=[
+    {l:'Sections',   v:S.sections.length,  s:'',                          c:'b'},
+    {l:'Symbols',    v:S.symbols.length,   s:i.isStripped?'stripped':'from symtab', c:'p'},
+    {l:'Functions',  v:S.functions.length, s:'detected',                  c:'y'},
+    {l:'CFG Blocks', v:S.blocks.length,    s:'basic blocks',              c:'c'},
+    {l:'Xrefs',      v:S.xrefs.length,     s:'call + jump',               c:'o'},
+    {l:'Strings',    v:S.strings.length,   s:'ASCII',                     c:'g'},
+    {l:'Unicode',    v:S.unicode.length,   s:'UTF-8/16',                  c:'b'},
+    {l:'Code Size',  v:fmtSize(i.codeSize),  s:numFmt(i.codeSize)+' bytes', c:'g'},
+    {l:'Data Size',  v:fmtSize(i.dataSize),  s:numFmt(i.dataSize)+' bytes', c:'y'},
+    {l:'Entry',      v:String(i.entry).toUpperCase(), s:'',               c:'r'},
+  ];
+  $('ov-stats').innerHTML=stats.map(s=>`
+    <div class="stat-card" data-c="${s.c}">
+      <div class="stat-label">${esc(s.l)}</div>
+      <div class="stat-value">${esc(String(s.v))}</div>
+      ${s.s?`<div class="stat-sub">${esc(s.s)}</div>`:''}
+    </div>`).join('');
+
+  $('ov-hashes').innerHTML=[
+    {l:'SHA-256',  v:i.sha256,   cls:'sha', copy:i.sha256},
+    {l:'Build-ID', v:i.buildId||'(none)', cls:'',  copy:i.buildId},
+    {l:'Base',     v:String(i.base),  cls:'', copy:null},
+  ].map(h=>`
+    <div class="hash-row">
+      <span class="hash-lbl">${h.l}</span>
+      <span class="hash-val ${h.cls}">${esc(h.v)}</span>
+      ${h.copy?`<button class="hash-copy" onclick="copyText('${esc(h.copy)}')">copy</button>`:''}
+    </div>`).join('');
+
+  if(S.hottest.length){
+    $('ov-hot').innerHTML=`
+      <div class="panel-header" style="margin-bottom:10px">
+        <span class="panel-title" style="font-size:13px">Hottest Functions</span>
+        <span class="panel-count">${S.hottest.length} by call count</span>
+      </div>
+      <div class="hot-grid">
+        ${S.hottest.map((h,idx)=>`
+          <div class="hot-card">
+            <div class="hot-rank ${idx<3?'top3':''}">${idx+1}</div>
+            <div class="hot-info">
+              <div class="hot-name" title="${esc(h.function.name)}">${esc(h.function.name)}</div>
+              <div class="hot-addr">${esc(h.function.start)}</div>
+            </div>
+            <div class="hot-calls">${h.callCount}<small>calls</small></div>
+          </div>`).join('')}
+      </div>`;
+  }
+}
+
+function numFmt(v){const s=String(v??'');const n=s.startsWith('0x')?parseInt(s,16):parseFloat(s);return isNaN(n)?'':n.toLocaleString();}
+
+/* ── SECTIONS ── */
+function renderSections(){
+  const secs=S.sections;
+  if(!secs.length){$('sec-body').innerHTML=emptyHtml('▤','No sections');return;}
+  $('sec-body').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Name</th><th>Type</th><th>VirtAddr</th><th>FileOffset</th><th>Size</th><th>Flags</th><th>Insns</th></tr></thead>
+    <tbody>${secs.map((s,i)=>`<tr>
+      <td class="c-d2">${i}</td>
+      <td class="c-y td-name" title="${esc(s.name)}">${esc(s.name)}</td>
+      <td><span class="tag t-${s.type}">${s.type}</span></td>
+      <td class="addr">${esc(s.vaddr)}</td>
+      <td class="c-d">${esc(s.offset)}</td>
+      <td class="c-g">${fmtSize(s.size)}</td>
+      <td class="c-d2">${fmtFlags(s.flags)}</td>
+      <td class="c-d">${s.insnCount||''}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
+/* ── SYMBOLS ── */
+function renderSymbols(){
+  const q=$('sym-q').value.toLowerCase(), type=$('sym-type').value;
+  let syms=S.symbols;
+  if(q)    syms=syms.filter(s=>(s.name+s.demangled).toLowerCase().includes(q));
+  if(type) syms=syms.filter(s=>s.type===type);
+  $('sym-rc').textContent=`${syms.length} / ${S.symbols.length}`;
+  if(!S.symbols.length){$('sym-body').innerHTML=emptyHtml('⊕','No symbols','Binary is stripped');return;}
+  if(!syms.length){$('sym-body').innerHTML=emptyHtml('⊕','No matches');return;}
+  $('sym-body').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Address</th><th>Type</th><th>Size</th><th>Name</th><th>Demangled</th></tr></thead>
+    <tbody>${syms.slice(0,600).map(s=>`<tr>
+      <td class="addr">${esc(s.address)}</td>
+      <td><span class="tag t-${s.type}">${s.type}</span>${s.isEntry?' <span class="tag t-entry">entry</span>':''}</td>
+      <td class="c-d">${s.size&&s.size!=='0x0'?fmtSize(s.size):''}</td>
+      <td class="c-y td-name" title="${esc(s.name)}">${esc(s.name)}</td>
+      <td class="c-p td-name" title="${esc(s.demangled)}">${s.demangled&&s.demangled!==s.name?esc(s.demangled):''}</td>
+    </tr>`).join('')}</tbody></table>
+    ${syms.length>600?`<div class="empty" style="padding:12px">Showing 600 of ${syms.length}</div>`:''}
+  </div>`;
+}
+
+/* ── FUNCTIONS ── */
+function renderFunctions(){
+  const q=$('fn-q').value.toLowerCase(), sort=$('fn-sort').value;
+  let fns=[...S.functions];
+  if(q) fns=fns.filter(f=>f.name.toLowerCase().includes(q));
+  if(sort==='size') fns.sort((a,b)=>toNum(b.size)-toNum(a.size));
+  else if(sort==='name') fns.sort((a,b)=>a.name.localeCompare(b.name));
+  $('fn-rc').textContent=`${fns.length} / ${S.functions.length}`;
+  if(!S.functions.length){$('fn-body').innerHTML=emptyHtml('ƒ','No functions detected');return;}
+  if(!fns.length){$('fn-body').innerHTML=emptyHtml('ƒ','No matches');return;}
+  const maxSz=Math.max(...fns.slice(0,500).map(f=>toNum(f.size)))||1;
+  $('fn-body').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Start</th><th>Size</th><th>Insns</th><th>Blocks</th><th>Flags</th><th>Name</th></tr></thead>
+    <tbody>${fns.slice(0,500).map(f=>{
+      const bw=Math.round((toNum(f.size)/maxSz)*44);
+      return `<tr>
+        <td class="addr">${esc(f.start)}</td>
+        <td class="c-g"><span class="size-bar" style="width:${bw}px"></span>${fmtSize(f.size)}</td>
+        <td class="c-d">${f.insnCount||''}</td>
+        <td class="c-d2">${f.blockCount||''}</td>
+        <td>${f.hasCalls?'<span class="tag t-call" style="font-size:9px">calls</span> ':''}${f.hasLoops?'<span class="tag t-data" style="font-size:9px">loops</span>':''}</td>
+        <td class="c-y td-name" title="${esc(f.name)}">${esc(f.name)}</td>
+      </tr>`;
+    }).join('')}</tbody></table>
+    ${fns.length>500?`<div class="empty" style="padding:12px">Showing 500 of ${fns.length}</div>`:''}
+  </div>`;
+}
+
+/* ── BLOCKS ── */
+function renderBlocks(){
+  const q=$('blk-q').value.toLowerCase();
+  let blks=S.blocks;
+  if(q){const qi=parseInt(q,10);if(!isNaN(qi))blks=blks.filter(b=>b.funcIdx===qi);}
+  $('blk-rc').textContent=`${blks.length} / ${S.blocks.length}`;
+  if(!S.blocks.length){$('blk-body').innerHTML=emptyHtml('⬡','No CFG blocks','Run with -C flag or use analyze()');return;}
+  if(!blks.length){$('blk-body').innerHTML=emptyHtml('⬡','No matches');return;}
+  $('blk-body').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>Start</th><th>End</th><th>Size</th><th>Func</th><th>Pred</th><th>Succ</th><th>Flags</th></tr></thead>
+    <tbody>${blks.slice(0,1000).map(b=>`<tr>
+      <td class="c-d2">${b.id}</td>
+      <td class="addr">${esc(b.start)}</td>
+      <td class="addr">${esc(b.end)}</td>
+      <td class="c-g">${fmtSize(toNum(b.end)-toNum(b.start))}</td>
+      <td class="c-d">${b.funcIdx}</td>
+      <td class="c-d2">${b.npred}</td>
+      <td class="c-d2">${b.nsucc}</td>
+      <td>${b.isEntry?'<span class="tag t-entry-blk">entry</span> ':''}${b.isExit?'<span class="tag t-exit-blk">exit</span>':''}</td>
+    </tr>`).join('')}</tbody></table>
+    ${blks.length>1000?`<div class="empty" style="padding:12px">Showing 1000 of ${blks.length}</div>`:''}
+  </div>`;
+}
+
+/* ── XREFS ── */
+function renderXrefs(){
+  const type=$('xref-type').value, q=$('xref-q').value.toLowerCase();
+  let xrefs=S.xrefs;
+  if(type==='call') xrefs=xrefs.filter(x=>x.isCall);
+  if(type==='jump') xrefs=xrefs.filter(x=>!x.isCall);
+  if(q) xrefs=xrefs.filter(x=>String(x.from).includes(q)||String(x.to).includes(q));
+  $('xref-rc').textContent=`${xrefs.length} / ${S.xrefs.length}`;
+  if(!S.xrefs.length){$('xref-body').innerHTML=emptyHtml('↗','No xrefs');return;}
+  if(!xrefs.length){$('xref-body').innerHTML=emptyHtml('↗','No matches');return;}
+  $('xref-body').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>From</th><th>Type</th><th></th><th>To</th></tr></thead>
+    <tbody>${xrefs.slice(0,2000).map(x=>`<tr>
+      <td class="addr">${esc(x.from)}</td>
+      <td><span class="tag ${x.isCall?'t-call':'t-jump'}">${x.isCall?'call':'jump'}</span></td>
+      <td class="c-d2">${x.isCall?'→':'↝'}</td>
+      <td class="addr">${esc(x.to)}</td>
+    </tr>`).join('')}</tbody></table>
+    ${xrefs.length>2000?`<div class="empty" style="padding:12px">Showing 2000 of ${xrefs.length}</div>`:''}
+  </div>`;
+}
+
+/* ── STRINGS ── */
+function renderStrings(){
+  const q=$('str-q').value.toLowerCase();
+  const minLen=parseInt($('str-minlen').value,10)||4;
+  let ss=S.strings.filter(s=>s.length>=minLen);
+  if(q) ss=ss.filter(s=>s.value.toLowerCase().includes(q));
+  $('str-rc').textContent=`${ss.length} shown`;
+  if(!S.strings.length){$('str-body').innerHTML=emptyHtml('≡','No strings found');return;}
+  if(!ss.length){$('str-body').innerHTML=emptyHtml('≡','No matches');return;}
+  $('str-body').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Address</th><th>Len</th><th>Value</th></tr></thead>
+    <tbody>${ss.slice(0,2000).map(s=>`<tr>
+      <td class="addr">${esc(s.address)}</td>
+      <td class="c-d">${s.length}</td>
+      <td><span class="str-val" title="${esc(s.value)}">${esc(s.value)}</span></td>
+    </tr>`).join('')}</tbody></table>
+    ${ss.length>2000?`<div class="empty" style="padding:12px">Showing 2000 of ${ss.length}</div>`:''}
+  </div>`;
+}
+
+/* ── UNICODE ── */
+function renderUnicode(){
+  const q=$('uni-q').value.toLowerCase(), enc=$('uni-enc').value;
+  let strs=S.unicode;
+  if(q)   strs=strs.filter(s=>s.value.toLowerCase().includes(q));
+  if(enc) strs=strs.filter(s=>s.encoding===enc);
+  $('uni-rc').textContent=`${strs.length} / ${S.unicode.length}`;
+  if(!S.unicode.length){$('uni-body').innerHTML=emptyHtml('⌘','No Unicode strings found','Only genuine multi-byte sequences reported');return;}
+  if(!strs.length){$('uni-body').innerHTML=emptyHtml('⌘','No matches');return;}
+  const etag=e=>({'utf-8':'t-utf8','utf-16le':'t-utf16le','utf-16be':'t-utf16be','ascii':'t-ascii'}[e]||'t-ascii');
+  $('uni-body').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Address</th><th>Encoding</th><th>Bytes</th><th>Value</th></tr></thead>
+    <tbody>${strs.slice(0,500).map(s=>{
+      const safe=s.value.replace(/[\n\r\t]/g,c=>c==='\n'?'\\n':c==='\r'?'\\r':'\\t');
+      return `<tr>
+        <td class="addr">${esc(s.address)}</td>
+        <td><span class="tag ${etag(s.encoding)}">${esc(s.encoding)}</span></td>
+        <td class="c-d">${s.byteLength}</td>
+        <td><span class="uni-val" title="${esc(safe)}">${esc(safe)}</span></td>
+      </tr>`;
+    }).join('')}</tbody></table>
+    ${strs.length>500?`<div class="empty" style="padding:12px">Showing 500 of ${strs.length}</div>`:''}
+  </div>`;
+}
+
+/* ── DISASM ── */
+function populateSectionSel(){
+  const sel=$('da-sec');sel.innerHTML='';
+  const code=S.sections.filter(s=>s.type==='code'||s.type==='plt');
+  (code.length?code:[{name:'.text'}]).forEach(s=>{
+    const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);
+  });
+}
+
+async function renderDisasm(){
+  if(!S.file)return;
+  const sec=$('da-sec').value||'.text', mode=$('da-mode').value;
+  const grp=$('da-grp').value, limit=Math.min(parseInt($('da-limit').value,10)||400,3000);
+  const el=$('da-body');
+  el.innerHTML=`<div class="disasm-wrap" style="min-height:180px">
+    <div class="loading-row"><span class="spinner"></span>Disassembling ${esc(sec)}…</div>
+  </div>`;
+  try{
+    if(mode==='text'){
+      const r=await post('/api/disasm',{file:S.file,section:sec});
+      $('pc-disasm').textContent='plain text';$('nb-disasm').textContent='txt';
+      el.innerHTML=`<div class="disasm-wrap"><pre style="padding:13px;font-family:var(--mono);font-size:11.5px;line-height:1.75;color:var(--dim);white-space:pre">${colorRaw(esc(r.text))}</pre></div>`;
+    }else{
+      const r=await post('/api/disasm/json',{file:S.file,section:sec,group:grp||undefined,limit});
+      S.allInsns=r.instructions||[];
+      $('pc-disasm').textContent=`${S.allInsns.length} insns`;$('nb-disasm').textContent=S.allInsns.length;
+      filterDisasm();
+    }
+  }catch(e){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">⚙</div><div class="empty-title">${esc(e.message)}</div></div>`;
+  }
+}
+
+function filterDisasm(){
+  const q=($('da-search').value||'').toLowerCase();
+  const el=$('da-body');
+  let insns=S.allInsns;
+  if(q) insns=insns.filter(i=>i.mnemonic.toLowerCase().includes(q)||(i.operands||'').toLowerCase().includes(q));
+  if(!insns.length){el.innerHTML=`<div class="empty"><div class="empty-icon">⚙</div><div class="empty-title">${S.allInsns.length?'No matches':'No data'}</div></div>`;return;}
+  const mc=m=>{
+    if(/^(call|callq|bl|blr)$/.test(m)) return 'call';
+    if(/^(ret|retq|retn|retaa|retab)$/.test(m)) return 'ret';
+    if(/^j|^b\./.test(m)) return 'branch';
+    if(/^(push|pop|pushq|popq|stp|ldp|str|ldr)$/.test(m)) return 'stack';
+    if(/^(nop|endbr64|endbr32|isb|dsb)$/.test(m)) return 'nop';
+    if(/^(syscall|sysenter|ecall|svc)$/.test(m)) return 'syscall';
+    return '';
+  };
+  const rows=insns.map(i=>{
+    const bytes=(i.bytes||[]).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    const mclass=mc(i.mnemonic);
+    const sym=i.symbol?`<tr class="sym-sep"><td colspan="5"><span class="d-sym">${esc(i.symbol)}:</span></td></tr>`:'';
+    return `${sym}<tr>
+      <td class="d-addr">${esc(i.address)}</td>
+      <td class="d-bytes">${bytes}</td>
+      <td class="d-mnem ${mclass}">${esc(i.mnemonic)}</td>
+      <td class="d-ops">${esc(i.operands||'')}</td>
+      <td class="d-grp">${i.group||''}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`<div class="disasm-wrap">
+    <table class="da-tbl">
+      <thead><tr>
+        <th style="width:126px">Address</th>
+        <th style="width:126px">Bytes</th>
+        <th style="width:86px">Mnemonic</th>
+        <th>Operands</th>
+        <th style="width:76px">Group</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function colorRaw(s){
+  return s
+    .replace(/(0x[0-9a-f]+)/gi,'<span style="color:var(--blue2)">$1</span>')
+    .replace(/\b(call|callq|bl|blr)\b/g,'<span style="color:var(--red2)">$1</span>')
+    .replace(/\b(ret|retq|retn)\b/g,'<span style="color:var(--pink)">$1</span>')
+    .replace(/\b(push|pop|pushq|popq)\b/g,'<span style="color:var(--purple2)">$1</span>')
+    .replace(/\b(nop|endbr64)\b/g,'<span style="color:var(--dim2)">$1</span>')
+    .replace(/\b(jmp|je|jne|jl|jle|jg|jge|jz|jnz|ja|jb|jae|jbe)\b/g,'<span style="color:var(--orange)">$1</span>');
+}
+
+function populateFnDropdowns() {
+    const fns = S.functions;
+    ['dc-fn','ssa-fn','sym-fn','emu-fn'].forEach(id => {
+        const sel = $(id); if (!sel) return;
+        sel.innerHTML = '';
+        fns.forEach((f, i) => {
+            const o = document.createElement('option');
+            o.value = i;
+            o.textContent = f.name.substring(0, 40) + (f.name.length > 40 ? '…' : '');
+            sel.appendChild(o);
+        });
+    });
+}
+
+function renderAdvancedOutput(containerId, output, title) {
+    const el = $(containerId);
+    if (!output || !output.trim()) {
+        el.innerHTML = emptyHtml('◈', 'No output', 'Architecture may not be supported (ARM64 required for advanced analysis)');
+        return;
+    }
+    el.innerHTML = `<div class="disasm-wrap"><pre style="padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-word">${esc(output)}</pre></div>`;
+}
+
+async function runDecompile() {
+    if (!S.file) return;
+    const funcIdx = parseInt($('dc-fn').value, 10);
+    const el = $('dc-body');
+    el.innerHTML = '<div class="loading-row"><span class="spinner"></span>Decompiling…</div>';
+    try {
+        const r = await post('/api/decompile', { file: S.file, funcIdx });
+        $('nb-decomp').textContent = '✓';
+        renderAdvancedOutput('dc-body', r.output, 'Decompiled');
+    } catch(e) { el.innerHTML = emptyHtml('◈', e.message); }
+}
+
+async function runSsa() {
+    if (!S.file) return;
+    const funcIdx = parseInt($('ssa-fn').value, 10);
+    const el = $('ssa-body');
+    el.innerHTML = '<div class="loading-row"><span class="spinner"></span>Lifting to SSA…</div>';
+    try {
+        const r = await post('/api/ssa', { file: S.file, funcIdx });
+        $('nb-ssa').textContent = '✓';
+        renderAdvancedOutput('ssa-body', r.output, 'SSA Form');
+    } catch(e) { el.innerHTML = emptyHtml('φ', e.message); }
+}
+
+async function runSymexec() {
+    if (!S.file) return;
+    const funcIdx = parseInt($('sym-fn').value, 10);
+    const el = $('sym-body');
+    el.innerHTML = '<div class="loading-row"><span class="spinner"></span>Running symbolic execution…</div>';
+    try {
+        const r = await post('/api/symexec', { file: S.file, funcIdx });
+        $('nb-sym').textContent = '✓';
+        renderAdvancedOutput('sym-body', r.output, 'Symbolic Execution');
+    } catch(e) { el.innerHTML = emptyHtml('∑', e.message); }
+}
+
+async function runEmulate() {
+    if (!S.file) return;
+    const funcIdx = parseInt($('emu-fn').value, 10);
+    const r0 = parseInt($('emu-r0').value, 0) || 0;
+    const r1 = parseInt($('emu-r1').value, 0) || 0;
+    const r2 = parseInt($('emu-r2').value, 0) || 0;
+    const el = $('emu-body');
+    el.innerHTML = '<div class="loading-row"><span class="spinner"></span>Emulating…</div>';
+    try {
+        const r = await post('/api/emulate', { file: S.file, funcIdx, initRegs: {'0':r0,'1':r1,'2':r2} });
+        $('nb-emu').textContent = '✓';
+        renderAdvancedOutput('emu-body', r.output, 'Emulation');
+    } catch(e) { el.innerHTML = emptyHtml('▶', e.message); }
+}
+
+async function runEntropy(){
+  if(!S.file)return;
+  const el=$('entropy-body');
+  el.innerHTML='<div class="loading-row"><span class="spinner"></span>Scanning entropy…</div>';
+  try{
+    const r=await post('/api/entropy',{file:S.file});
+    $('nb-entropy').textContent='✓'; $('pc-entropy').textContent='done';
+    renderAdvancedOutput('entropy-body',r.output,'Entropy');
+  }catch(e){el.innerHTML=emptyHtml('∿',e.message);}
+}
+
+async function runRda(){
+  if(!S.file)return;
+  const sec=$('rda-sec')?.value||'.text';
+  const el=$('rda-body');
+  el.innerHTML=`<div class="loading-row"><span class="spinner"></span>Recursive descent on ${esc(sec)}…</div>`;
+  try{
+    const r=await post('/api/rda',{file:S.file,section:sec});
+    $('nb-rda').textContent='✓'; $('pc-rda').textContent=sec;
+    renderAdvancedOutput('rda-body',r.output,'RDA');
+  }catch(e){el.innerHTML=emptyHtml('⤷',e.message);}
+}
+
+async function runIvf(){
+  if(!S.file)return;
+  const el=$('ivf-body');
+  el.innerHTML='<div class="loading-row"><span class="spinner"></span>Scanning validity…</div>';
+  try{
+    const r=await post('/api/ivf',{file:S.file});
+    $('nb-ivf').textContent='✓'; $('pc-ivf').textContent='done';
+    renderAdvancedOutput('ivf-body',r.output,'IVF');
+  }catch(e){el.innerHTML=emptyHtml('⚑',e.message);}
+}
+
+function emptyHtml(icon,title,sub=''){
+  return `<div class="empty">
+    <div class="empty-icon">${icon}</div>
+    <div class="empty-title">${esc(title)}</div>
+    ${sub?`<div class="empty-sub">${esc(sub)}</div>`:''}
+  </div>`;
+}
+</script>
+</body>
+</html>
