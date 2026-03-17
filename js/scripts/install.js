@@ -1,62 +1,58 @@
 #!/usr/bin/env node
 /**
  * NeoDAX native addon installer
+ * Called automatically by `npm install neodax`
  *
- * Called automatically by `npm install neodax`.
+ * Works whether installed:
+ *   - As npm package: node_modules/neodax/  (package root = repo root)
+ *   - In js/ subdir of a git clone
  *
  * Strategy:
- *   1. Check if a prebuilt binary exists for this platform/arch in prebuilds/
- *   2. If found → copy it to neodax.node and done
- *   3. If not → attempt to compile from source (requires C compiler + Node headers)
- *   4. If compile fails → print helpful instructions and exit(0) so npm install
- *      doesn't fail the whole project — import will throw a clear error at runtime
+ *   1. Check if neodax.node already exists → done
+ *   2. Check prebuilds/<platform>-<arch>.node → copy → done
+ *   3. Run build_js.sh from repo root → done
+ *   4. Inline compile with clang/gcc → done
+ *   5. If all fail → print instructions, exit(0) so npm install succeeds
  */
-
 'use strict';
 
 const path    = require('path');
 const fs      = require('fs');
-const os      = require('os');
-const { execSync, spawnSync } = require('child_process');
+const { spawnSync, execSync } = require('child_process');
 
-const ROOT    = path.join(__dirname, '..');     // js/ directory
-const ADDON   = path.join(ROOT, 'neodax.node');
-const REPO    = path.join(ROOT, '..');          // NeoDAX repo root
-const BUILDS  = path.join(ROOT, 'prebuilds');
-
-// ── helpers ──────────────────────────────────────────────────────────
+// Determine package root and repo root
+// When installed as npm package: __dirname = node_modules/neodax/js/scripts/
+//   ROOT     = node_modules/neodax/js/
+//   PKG_ROOT = node_modules/neodax/          (has src/, include/, build_js.sh)
+// When run from git clone js/scripts/:
+//   ROOT     = NeoDAX/js/
+//   PKG_ROOT = NeoDAX/                       (has src/, include/, build_js.sh)
+const ROOT     = path.join(__dirname, '..');     // js/ directory
+const PKG_ROOT = path.join(ROOT, '..');          // repo/package root
+const ADDON    = path.join(ROOT, 'neodax.node');
+const BUILDS   = path.join(ROOT, 'prebuilds');
 
 function log(msg)  { process.stdout.write(`  [neodax] ${msg}\n`); }
 function warn(msg) { process.stdout.write(`  [neodax] ⚠  ${msg}\n`); }
 function ok(msg)   { process.stdout.write(`  [neodax] ✓  ${msg}\n`); }
 function fail(msg) { process.stdout.write(`  [neodax] ✗  ${msg}\n`); }
 
-function platform() {
-    const p = process.platform;
-    if (p === 'linux')  return 'linux';
-    if (p === 'darwin') return 'darwin';
-    return p;
+function which(cmd) {
+    try {
+        const r = spawnSync('which', [cmd], { encoding: 'utf8' });
+        return r.status === 0 && r.stdout.trim().length > 0;
+    } catch (_) { return false; }
 }
 
-function arch() {
-    const a = process.arch;
-    if (a === 'x64')   return 'x64';
-    if (a === 'arm64') return 'arm64';
-    return a;
-}
-
-// ── 1. Already built? ────────────────────────────────────────────────
-
+// ── 1. Already built? ────────────────────────────────────────────
 if (fs.existsSync(ADDON)) {
-    ok(`neodax.node already present — skipping build`);
+    ok('neodax.node already present — skipping build');
     process.exit(0);
 }
 
-// ── 2. Prebuild? ─────────────────────────────────────────────────────
-
-const tag      = `${platform()}-${arch()}`;
+// ── 2. Prebuild? ─────────────────────────────────────────────────
+const tag      = `${process.platform === 'linux' ? 'linux' : process.platform === 'darwin' ? 'darwin' : process.platform}-${process.arch}`;
 const prebuild = path.join(BUILDS, `neodax-${tag}.node`);
-
 if (fs.existsSync(prebuild)) {
     log(`Using prebuild for ${tag}`);
     fs.copyFileSync(prebuild, ADDON);
@@ -64,120 +60,98 @@ if (fs.existsSync(prebuild)) {
     process.exit(0);
 }
 
-log(`No prebuild found for ${tag} — compiling from source…`);
+log(`No prebuild for ${tag} — compiling from source…`);
 
-// ── 3. Check build tools ─────────────────────────────────────────────
-
-function which(cmd) {
-    try {
-        const r = spawnSync(process.platform === 'win32' ? 'where' : 'which',
-                            [cmd], { encoding: 'utf8' });
-        return r.status === 0 && r.stdout.trim().length > 0;
-    } catch (_) { return false; }
-}
-
-const hasCC    = which('clang') || which('gcc') || which('cc');
-const hasMake  = which('make') || which('gmake');
-
-if (!hasCC) {
+if (!which('clang') && !which('gcc') && !which('cc')) {
     warn('No C compiler found (need clang or gcc)');
-    warn('Install it and run: npm rebuild');
     if (process.platform === 'linux') {
-        warn('  Debian/Ubuntu:  sudo apt install build-essential');
-        warn('  Termux/Android: pkg install clang');
-        warn('  Fedora:         sudo dnf install gcc');
+        warn('  Debian/Ubuntu: sudo apt install build-essential libnode-dev');
+        warn('  Termux:        pkg install clang');
+        warn('  Fedora:        sudo dnf install gcc');
     } else if (process.platform === 'darwin') {
-        warn('  macOS:          xcode-select --install');
+        warn('  macOS: xcode-select --install');
     }
+    warn('After installing compiler, run: npm rebuild');
     process.exit(0);
 }
 
-if (!hasMake) {
-    warn('make not found — trying direct compiler invocation via build_js.sh');
-}
-
-// ── 4. Compile ───────────────────────────────────────────────────────
-
-const buildScript = path.join(REPO, 'build_js.sh');
-
+// ── 3. Try build_js.sh ───────────────────────────────────────────
+const buildScript = path.join(PKG_ROOT, 'build_js.sh');
 if (fs.existsSync(buildScript)) {
-    log(`Running build_js.sh from repo root: ${REPO}`);
+    log(`Running build_js.sh…`);
     try {
-        execSync(`bash "${buildScript}"`, {
-            cwd:   REPO,
-            stdio: 'inherit',
-            env:   { ...process.env, NEODAX_QUIET: '1' }
-        });
-    } catch (e) {
-        fail('build_js.sh failed — see output above');
-        fail('You can retry with: npm rebuild');
-        process.exit(0);
-    }
-
-    const builtNode = path.join(REPO, 'js', 'neodax.node');
-    if (fs.existsSync(builtNode)) {
-        if (builtNode !== ADDON) {
-            fs.copyFileSync(builtNode, ADDON);
+        execSync(`bash "${buildScript}"`, { cwd: PKG_ROOT, stdio: 'inherit' });
+        // build_js.sh outputs to PKG_ROOT/js/neodax.node
+        const built = path.join(PKG_ROOT, 'js', 'neodax.node');
+        if (fs.existsSync(built)) {
+            if (built !== ADDON) fs.copyFileSync(built, ADDON);
+            ok(`neodax.node built and installed`);
+            process.exit(0);
         }
-        ok(`neodax.node built and installed at ${ADDON}`);
-        process.exit(0);
+    } catch (_) {
+        fail('build_js.sh failed — trying inline compile');
     }
 }
 
-// ── 5. Fallback: inline compile ──────────────────────────────────────
-
-log('Attempting inline compile…');
-
-const nodeInc = path.join(
-    process.execPath.replace(/\/bin\/node$/, '').replace(/\\bin\\node.exe$/, ''),
-    'include', 'node'
-);
-
-const altIncs = [
-    nodeInc,
+// ── 4. Inline compile ────────────────────────────────────────────
+const nodeIncs = [
+    path.join(process.execPath, '../../include/node'),
+    path.join(process.execPath, '../../../include/node'),
     '/usr/include/node',
     '/usr/local/include/node',
     process.env.PREFIX ? `${process.env.PREFIX}/include/node` : null,
 ].filter(Boolean);
 
-const nodeIncPath = altIncs.find(p => fs.existsSync(path.join(p, 'node_api.h')));
+// Also check node-gyp cache
+const NODE_VER = process.version.slice(1);
+for (const base of [`${process.env.HOME}/.cache/node-gyp`, `${process.env.HOME}/.node-gyp`]) {
+    nodeIncs.push(path.join(base, NODE_VER, 'include', 'node'));
+}
 
-if (!nodeIncPath) {
-    fail('Cannot find node_api.h — install Node.js dev headers');
-    fail('  Debian/Ubuntu:  sudo apt install libnode-dev');
-    fail('  Termux:         pkg install nodejs (headers included)');
-    fail('You can retry with: npm rebuild');
+const nodeInc = nodeIncs.find(p => {
+    try { return fs.existsSync(path.join(p, 'node_api.h')); } catch(_) { return false; }
+});
+
+if (!nodeInc) {
+    fail('Cannot find node_api.h');
+    fail('  Debian/Ubuntu: sudo apt install libnode-dev');
+    fail('  Termux:        pkg install nodejs');
+    fail('After installing headers, run: npm rebuild');
     process.exit(0);
 }
 
-const srcDir  = path.join(REPO, 'src');
-const incDir  = path.join(REPO, 'include');
+const cc      = which('clang') ? 'clang' : 'gcc';
+const isApple = process.platform === 'darwin';
+const isAndroid = process.env.TERMUX_VERSION || fs.existsSync('/data/data/com.termux');
+const srcDir  = path.join(PKG_ROOT, 'src');
+const incDir  = path.join(PKG_ROOT, 'include');
+const napiSrc = path.join(ROOT, 'src', 'neodax_napi.c');
 
 const sources = [
-    'neodax_napi.c',
-    'loader.c','disasm.c','x86_decode.c','arm64_decode.c',
-    'symbols.c','demangle.c','analysis.c','cfg.c','daxc.c',
-    'interactive.c','loops.c','callgraph.c','correct.c',
-    'riscv_decode.c','unicode.c','sha256.c','main.c',
-    'symexec.c','decomp.c','emulate.c','entropy.c',
-].map(f => f === 'neodax_napi.c'
-    ? path.join(ROOT, 'src', f)
-    : path.join(srcDir, f)).join(' ');
+    napiSrc,
+    ...[ 'loader.c','disasm.c','x86_decode.c','arm64_decode.c',
+         'symbols.c','demangle.c','analysis.c','cfg.c','daxc.c',
+         'interactive.c','loops.c','callgraph.c','correct.c',
+         'riscv_decode.c','unicode.c','sha256.c','main.c',
+         'symexec.c','decomp.c','emulate.c','entropy.c','macho.c' ]
+         .map(f => path.join(srcDir, f))
+].join(' ');
 
-const cc    = which('clang') ? 'clang' : 'gcc';
-const isAndroid = fs.existsSync('/data/data/com.termux') || process.env.TERMUX_VERSION;
-const androidFlag = isAndroid ? '-DBUILD_OS_ANDROID -DBUILD_OS_LINUX' : '';
-const ldFlags = process.platform === 'darwin'
+const ldFlags = isApple
     ? '-undefined dynamic_lookup'
     : '-Wl,--unresolved-symbols=ignore-all';
 
+const defines = isApple
+    ? '-D_DARWIN_C_SOURCE -DBUILD_OS_DARWIN -DBUILD_OS_BSD'
+    : `-D_GNU_SOURCE -DBUILD_OS_LINUX${isAndroid ? ' -DBUILD_OS_ANDROID' : ''}`;
+
 const cmd = [
     cc,
-    '-shared -fPIC -O2',
-    `-std=c99 -D_GNU_SOURCE`,
-    `-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0`,
-    androidFlag,
-    `-I"${incDir}" -I"${nodeIncPath}"`,
+    '-shared', isApple ? '' : '-fPIC',
+    '-O2 -std=c99',
+    '-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0',
+    defines,
+    `-I"${incDir}" -I"${nodeInc}"`,
     sources,
     ldFlags,
     '-lm',
@@ -186,15 +160,15 @@ const cmd = [
 
 log(`Compiling with ${cc}…`);
 try {
-    execSync(cmd, { cwd: REPO, stdio: 'inherit' });
-} catch (e) {
+    execSync(cmd, { cwd: PKG_ROOT, stdio: 'inherit' });
+} catch (_) {
     fail('Compilation failed — see output above');
-    fail('You can retry manually: cd <neodax-repo-root> && bash build_js.sh');
+    fail('You can retry: npm rebuild');
     process.exit(0);
 }
 
 if (fs.existsSync(ADDON)) {
-    ok(`neodax.node compiled and ready`);
+    ok('neodax.node compiled and ready');
 } else {
-    fail(`neodax.node not produced — something went wrong`);
+    fail('neodax.node not produced — something went wrong');
 }

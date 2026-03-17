@@ -67,7 +67,6 @@ int dax_parse_macho(dax_binary_t *bin)
         if (fat_find_slice(data, sz, MACHO_CPU_ARM64,  &off, &slice_sz) != 0)
             fat_find_slice(data, sz, MACHO_CPU_X86_64, &off, &slice_sz);
         if (off == 0 || off + slice_sz > sz) {
-            fprintf(stderr, "neodax: FAT binary: no usable slice found\n");
             return -1;
         }
         /* Parse the selected slice in-place (data offset from start) */
@@ -83,6 +82,8 @@ int dax_parse_macho(dax_binary_t *bin)
     uint32_t magic = *(const uint32_t *)data;
     int is64 = 0;
 
+    /* MACHO_MAGIC_64_LE = 0xFEEDFACF = bytes CF FA ED FE on disk (ARM64/x86-64 LE)
+       MACHO_MAGIC_64     = 0xCFFAEDFE = bytes FE ED FA CF on disk (big-endian, rare) */
     if      (magic == MACHO_MAGIC_64_LE) { is64 = 1; swap = 0; }
     else if (magic == MACHO_MAGIC_64)    { is64 = 1; swap = 1; }
     else if (magic == MACHO_MAGIC_32_LE) { is64 = 0; swap = 0; }

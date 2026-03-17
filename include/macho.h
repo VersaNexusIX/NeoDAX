@@ -4,12 +4,13 @@
 #include <stdint.h>
 
 /* Mach-O magic numbers */
-#define MACHO_MAGIC_32      0xFEEDFACEU   /* 32-bit big-endian    */
-#define MACHO_MAGIC_32_LE   0xCEFAEDFEU   /* 32-bit little-endian */
-#define MACHO_MAGIC_64      0xFEEDFACFU   /* 64-bit big-endian    */
-#define MACHO_MAGIC_64_LE   0xCFFAEDFEU   /* 64-bit little-endian */
-#define MACHO_FAT_MAGIC     0xBEBAFECAU   /* FAT big-endian       */
-#define MACHO_FAT_MAGIC_LE  0xCAFEBABEU   /* FAT little-endian    */
+/* Magic values as read by a little-endian CPU from the raw file bytes */
+#define MACHO_MAGIC_32      0xCEFAEDFEU   /* file bytes: FE ED FA CE  (32-bit BE) */
+#define MACHO_MAGIC_32_LE   0xFEEDFACEU   /* file bytes: CE FA ED FE  (32-bit LE) */
+#define MACHO_MAGIC_64      0xCFFAEDFEU   /* file bytes: FE ED FA CF  (64-bit BE) */
+#define MACHO_MAGIC_64_LE   0xFEEDFACFU   /* file bytes: CF FA ED FE  (64-bit LE) ← most common */
+#define MACHO_FAT_MAGIC     0xBEBAFECAU   /* file bytes: CA FE BA BE  (FAT)       */
+#define MACHO_FAT_MAGIC_LE  0xCAFEBABEU   /* alias kept for compat                */
 
 /* CPU types */
 #define MACHO_CPU_X86_64    0x01000007
