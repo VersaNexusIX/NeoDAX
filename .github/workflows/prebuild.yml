@@ -1,0 +1,173 @@
+name: Prebuild
+
+# Runs when a release tag is pushed (v1.x.x) or manually dispatched.
+# Builds neodax.node on 6 platform/arch combos and uploads to the GitHub Release.
+# These prebuilds are then included in the npm publish, so users don't need
+# a C compiler — `npm install neodax` just copies the right binary.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build prebuilds for (e.g. v1.0.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write   # needed to upload release assets
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────
+  #  Build matrix
+  # ─────────────────────────────────────────────────────────────────
+  prebuild:
+    name: Prebuild · ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── Linux x86-64 ──
+          - label:    linux-x64
+            os:       ubuntu-latest
+            arch:     x64
+            platform: linux
+            setup: |
+              sudo apt-get update -qq
+              sudo apt-get install -y --no-install-recommends \
+                build-essential libnode-dev
+
+          # ── Linux ARM64 ──
+          - label:    linux-arm64
+            os:       ubuntu-24.04-arm
+            arch:     arm64
+            platform: linux
+            setup: |
+              sudo apt-get update -qq
+              sudo apt-get install -y --no-install-recommends \
+                build-essential libnode-dev
+
+          # ── macOS ARM64 (Apple Silicon / M-series) ──
+          - label:    darwin-arm64
+            os:       macos-latest
+            arch:     arm64
+            platform: darwin
+            setup:    ''
+
+          # ── macOS x86-64 ──
+          - label:    darwin-x64
+            os:       macos-13
+            arch:     x64
+            platform: darwin
+            setup:    ''
+
+          # ── Linux x86-64 · Node 18 ──
+          - label:    linux-x64-node18
+            os:       ubuntu-latest
+            arch:     x64
+            platform: linux
+            node_version: '18'
+            setup: |
+              sudo apt-get update -qq
+              sudo apt-get install -y --no-install-recommends build-essential
+
+          # ── Linux x86-64 · Node 22 ──
+          - label:    linux-x64-node22
+            os:       ubuntu-latest
+            arch:     x64
+            platform: linux
+            node_version: '22'
+            setup: |
+              sudo apt-get update -qq
+              sudo apt-get install -y --no-install-recommends build-essential
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node_version || '20' }}
+
+      - name: Platform setup
+        if: matrix.setup != ''
+        run: ${{ matrix.setup }}
+
+      - name: Build CLI
+        run: make
+
+      - name: Build JS addon
+        run: bash build_js.sh
+
+      - name: Verify addon
+        run: |
+          node -e "
+            const n = require('./js/index.js');
+            console.log('version:', n.version());
+            n.withBinary(process.platform === 'darwin' ? '/bin/ls' : '/bin/ls', b => {
+              console.log('arch:', b.arch, '| sections:', b.sections().length);
+            });
+          "
+
+      - name: Run tests
+        run: node js/test/basic.js
+
+      - name: Stage prebuild
+        run: |
+          mkdir -p js/prebuilds
+          NODE_VER=$(node --version | sed 's/v//')
+          NODE_MAJOR=$(echo $NODE_VER | cut -d. -f1)
+          DEST="js/prebuilds/neodax-${{ matrix.platform }}-${{ matrix.arch }}-node${NODE_MAJOR}.node"
+          cp js/neodax.node "$DEST"
+          # Also copy without node version for compatibility
+          cp js/neodax.node "js/prebuilds/neodax-${{ matrix.platform }}-${{ matrix.arch }}.node"
+          echo "Staged: $(ls js/prebuilds/)"
+
+      - name: Upload prebuild artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-${{ matrix.label }}
+          path: js/prebuilds/
+          retention-days: 30
+
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: js/prebuilds/*.node
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────
+  #  Collect all prebuilds into one artifact for npm publish
+  # ─────────────────────────────────────────────────────────────────
+  collect:
+    name: Collect prebuilds
+    needs: prebuild
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all prebuild artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: prebuild-*
+          path: js/prebuilds/
+          merge-multiple: true
+
+      - name: List collected prebuilds
+        run: |
+          echo "Collected prebuilds:"
+          ls -lh js/prebuilds/
+
+      - name: Upload combined prebuilds
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-prebuilds
+          path: js/prebuilds/
+          retention-days: 7

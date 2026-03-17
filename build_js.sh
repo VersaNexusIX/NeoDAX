@@ -41,7 +41,29 @@ find_node_headers() {
     return 1
 }
 
+# Allow CI/users to pre-set NODE_INC via environment variable
+if [ -n "${NODE_INC:-}" ] && [ -f "${NODE_INC}/node_api.h" ]; then
+    ok "Node headers from environment: $NODE_INC"
+fi
+
+if [ -z "${NODE_INC:-}" ] || [ ! -f "${NODE_INC}/node_api.h" ]; then
+
 NODE_INC="$(find_node_headers 2>/dev/null || true)"
+
+# Also search node-gyp header cache (installed by CI via: node-gyp install)
+if [ -z "$NODE_INC" ]; then
+    NODE_VER="$(node --version 2>/dev/null | sed 's/v//' || true)"
+    for gyp_root in \
+        "$HOME/.cache/node-gyp/$NODE_VER/include/node" \
+        "$HOME/.node-gyp/$NODE_VER/include/node" \
+        "/root/.cache/node-gyp/$NODE_VER/include/node" \
+        "/root/.node-gyp/$NODE_VER/include/node"; do
+        if [ -f "$gyp_root/node_api.h" ]; then
+            NODE_INC="$gyp_root"
+            break
+        fi
+    done
+fi
 
 if [ -z "$NODE_INC" ]; then
     warn "node headers not found — trying to locate via npm..."
@@ -60,6 +82,8 @@ if [ -z "$NODE_INC" ]; then
 fi
 
 [ -z "$NODE_INC" ] && die "Cannot find node headers (node_api.h).\n  On Termux: pkg install nodejs\n  On Debian/Ubuntu: apt install nodejs libnode-dev\n  On macOS: brew install node"
+
+fi  # end: if NODE_INC not already set
 
 ok "Node headers: $NODE_INC"
 
@@ -96,6 +120,10 @@ case "$OS" in
         ;;
     darwin)
         LDFLAGS="-undefined dynamic_lookup"
+        # macOS: use _DARWIN_C_SOURCE for open_memstream + POSIX extensions
+        # Remove -fPIC (not needed on macOS with dylib/shared)
+        CFLAGS="$(echo "$CFLAGS" | sed 's/-fPIC//')"
+        CFLAGS="$CFLAGS -D_DARWIN_C_SOURCE -DBUILD_OS_DARWIN"
         ;;
     freebsd|openbsd|netbsd)
         LDFLAGS="-Wl,--unresolved-symbols=ignore-all"

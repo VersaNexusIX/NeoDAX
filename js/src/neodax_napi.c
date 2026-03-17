@@ -1,3 +1,11 @@
+/* Portable feature-test macros — must come before ALL system headers */
+#if defined(__APPLE__)
+#  define _DARWIN_C_SOURCE 1
+#elif !defined(_GNU_SOURCE)
+#  define _GNU_SOURCE 1
+#  define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <node_api.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +15,9 @@
 #include <ctype.h>
 #include <time.h>
 #include "dax.h"
+#include "x86.h"
+#include "arm64.h"
+#include "riscv.h"
 
 #define NAPI_CALL(env, call)                                      \
     do {                                                          \
@@ -391,22 +402,22 @@ static napi_value ndx_disasm_json(napi_env env, napi_callback_info info) {
     napi_value arr; napi_create_array_with_length(env,0,&arr);
 
     if (bin->arch==ARCH_X86_64) {
-        extern int x86_decode(const uint8_t*, size_t, uint64_t, void*);
-        typedef struct { uint64_t addr; uint8_t bytes[15]; uint8_t length; char mnemonic[32]; char ops[256]; } x86_insn_t;
         while (off < sz) {
             x86_insn_t insn;
+            memset(&insn,0,sizeof(insn));
             int len = x86_decode(code+off,sz-off,base+off,&insn);
             if (len<=0){off++;continue;}
             if (idx >= offset_n && count < limit) {
                 napi_value o; napi_create_object(env,&o);
-                set_u64(env,o,"address",insn.addr);
+                set_u64(env,o,"address",insn.address);
                 set_str(env,o,"mnemonic",insn.mnemonic);
                 set_str(env,o,"operands",insn.ops);
-                set_u32(env,o,"size",(uint32_t)len);
-                napi_value ba; napi_create_array_with_length(env,(size_t)len,&ba);
-                for (int b=0;b<len;b++){napi_value bv;napi_create_uint32(env,code[off+b],&bv);napi_set_element(env,ba,(uint32_t)b,bv);}
+                set_u32(env,o,"size",(uint32_t)insn.length);
+                uint8_t ilen = insn.length > 15 ? 15 : insn.length;
+                napi_value ba; napi_create_array_with_length(env,(size_t)ilen,&ba);
+                for (int b=0;b<(int)ilen;b++){napi_value bv;napi_create_uint32(env,code[off+b],&bv);napi_set_element(env,ba,(uint32_t)b,bv);}
                 napi_set_named_property(env,o,"bytes",ba);
-                dax_symbol_t *sym = dax_sym_find(bin,insn.addr);
+                dax_symbol_t *sym = dax_sym_find(bin,insn.address);
                 if (sym) set_str(env,o,"symbol",sym->demangled[0]?sym->demangled:sym->name);
                 else     set_null(env,o,"symbol");
                 const char *grp = dax_igrp_str(dax_classify_x86(insn.mnemonic));
@@ -415,10 +426,9 @@ static napi_value ndx_disasm_json(napi_env env, napi_callback_info info) {
                 count++;
             }
             idx++;
-            off+=(size_t)len;
+            off+=(size_t)insn.length;
         }
     } else if (bin->arch==ARCH_ARM64) {
-        extern void a64_decode(uint32_t, uint64_t, void*);
         typedef struct { char mnemonic[32]; char operands[256]; } a64_insn_t;
         while (off+4<=sz) {
             uint32_t raw=(uint32_t)(code[off])|(code[off+1]<<8)|(code[off+2]<<16)|(code[off+3]<<24);
@@ -440,6 +450,32 @@ static napi_value ndx_disasm_json(napi_env env, napi_callback_info info) {
                 napi_set_element(env,arr,count,o); count++;
             }
             idx++; off+=4;
+        }
+    } else if (bin->arch==ARCH_RISCV64) {
+        /* RISC-V RV64GC — instructions are 2 (compressed) or 4 bytes */
+        while (off < sz) {
+            rv_insn_t insn;
+            memset(&insn,0,sizeof(insn));
+            int rlen = rv_decode(code+off, sz-off, base+off, &insn);
+            if (rlen<=0){off++;continue;}
+            if (idx>=offset_n && count<limit) {
+                napi_value o; napi_create_object(env,&o);
+                set_u64(env,o,"address",insn.address);
+                set_str(env,o,"mnemonic",insn.mnemonic);
+                set_str(env,o,"operands",insn.operands);
+                set_u32(env,o,"size",(uint32_t)rlen);
+                uint8_t blen=(uint8_t)(rlen>4?4:rlen);
+                napi_value ba; napi_create_array_with_length(env,(size_t)blen,&ba);
+                for(int b=0;b<(int)blen;b++){napi_value bv;napi_create_uint32(env,code[off+b],&bv);napi_set_element(env,ba,(uint32_t)b,bv);}
+                napi_set_named_property(env,o,"bytes",ba);
+                dax_symbol_t *sym=dax_sym_find(bin,insn.address);
+                if(sym) set_str(env,o,"symbol",sym->demangled[0]?sym->demangled:sym->name);
+                else    set_null(env,o,"symbol");
+                const char *grp=dax_igrp_str(dax_classify_riscv(insn.mnemonic));
+                set_str(env,o,"group",grp&&grp[0]?grp:"unknown");
+                napi_set_element(env,arr,count,o); count++;
+            }
+            idx++; off+=(size_t)rlen;
         }
     }
     return arr;

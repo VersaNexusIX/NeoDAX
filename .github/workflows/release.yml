@@ -1,0 +1,128 @@
+name: Release
+
+# Manual workflow to bump version, commit, tag, and trigger the publish pipeline.
+# Usage: Actions tab → Release → Run workflow → enter version (e.g. 1.1.0)
+#
+# This workflow:
+#   1. Updates js/package.json version
+#   2. Updates CHANGELOG.md (adds header for new version)
+#   3. Commits the version bump to main
+#   4. Creates and pushes the tag (v<version>)
+#   5. The `publish` workflow picks up the tag automatically
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New version (e.g. 1.1.0 or 1.2.0-beta.1) — no "v" prefix'
+        required: true
+      release_notes:
+        description: 'Short release notes for CHANGELOG (or leave blank)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run — commit and tag but do not push'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Bump version and tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "ERROR: invalid version format '$VERSION'"
+            echo "Expected: X.Y.Z or X.Y.Z-prerelease (no 'v' prefix)"
+            exit 1
+          fi
+          TAG="v$VERSION"
+          if git tag -l | grep -qx "$TAG"; then
+            echo "ERROR: tag $TAG already exists"
+            exit 1
+          fi
+          echo "Version: $VERSION  Tag: $TAG"
+
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump js/package.json
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          node -e "
+            const fs  = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('js/package.json','utf8'));
+            const old = pkg.version;
+            pkg.version = '$VERSION';
+            fs.writeFileSync('js/package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('package.json:', old, '→', pkg.version);
+          "
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+          NOTES="${{ github.event.inputs.release_notes }}"
+          HEADER="## [$VERSION] — $DATE"
+          BODY="${NOTES:-See commit history for changes.}"
+
+          # Insert new section after the first "---" separator line
+          python3 - << PYEOF
+          import re, sys
+          with open('CHANGELOG.md','r') as f: d = f.read()
+          insert = f"\n{HEADER}\n\n{BODY}\n\n---"
+          # Insert after the first "---" line
+          d2 = d.replace('\n---\n', insert + '\n---\n', 1)
+          with open('CHANGELOG.md','w') as f: f.write(d2)
+          print("CHANGELOG.md updated with $HEADER")
+          PYEOF
+
+      - name: Commit version bump
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          git add js/package.json CHANGELOG.md
+          git diff --cached --stat
+          git commit -m "chore: release v$VERSION
+
+          - bump js/package.json to $VERSION
+          - update CHANGELOG.md
+          [skip ci]"
+
+      - name: Create tag
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          git tag -a "v$VERSION" -m "NeoDAX v$VERSION"
+          echo "Created tag v$VERSION"
+
+      - name: Push commit and tag
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git push origin main
+          git push origin "v${{ github.event.inputs.version }}"
+          echo "Pushed — publish workflow will trigger automatically"
+
+      - name: Dry run summary
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "DRY RUN — changes NOT pushed"
+          echo "Commit:"
+          git log -1 --oneline
+          echo "Tag:"
+          git tag -l "v${{ github.event.inputs.version }}"
