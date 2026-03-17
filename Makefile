@@ -138,12 +138,12 @@ else ifeq ($(IS_LINUX), yes)
     endif
 
 else ifeq ($(IS_DARWIN), yes)
-    CFLAGS     += -DBUILD_OS_BSD
+    CFLAGS     += -DBUILD_OS_BSD -DBUILD_OS_DARWIN
     PREFIX_INST ?= /usr/local
     ifeq ($(UNAME_M), arm64)
-        ASM_SRC = arch/arm64_bsd.S
+        ASM_SRC = arch/arm64_macos.S
     else
-        ASM_SRC = arch/x86_64_bsd.S
+        ASM_SRC = arch/x86_64_macos.S
     endif
 
 else ifeq ($(IS_FREEBSD), yes)

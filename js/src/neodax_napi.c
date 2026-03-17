@@ -122,10 +122,13 @@ static napi_value build_symbol(napi_env env, dax_symbol_t *s) {
 
 static napi_value build_function(napi_env env, dax_func_t *f) {
     napi_value o; napi_create_object(env, &o);
+    /* end=0 means the function boundary is unknown (no ret found); use start as fallback */
+    uint64_t fn_end  = (f->end > 0) ? f->end : f->start;
+    uint64_t fn_size = (fn_end > f->start) ? fn_end - f->start : 0;
     set_str(env, o, "name",       f->name);
     set_u64(env, o, "start",      f->start);
-    set_u64(env, o, "end",        f->end);
-    set_u64(env, o, "size",       f->end > f->start ? f->end - f->start : 0);
+    set_u64(env, o, "end",        fn_end);
+    set_u64(env, o, "size",       fn_size);
     set_u32(env, o, "insnCount",  f->insn_count);
     set_u32(env, o, "blockCount", f->block_count);
     set_bool(env, o, "hasLoops",  f->has_loops);
