@@ -80,7 +80,7 @@ jobs:
 
   macos-arm64:
     name: macOS ARM64 · Apple Clang
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -95,7 +95,7 @@ jobs:
 
   macos-x64:
     name: macOS x86-64 · Apple Clang
-    runs-on: macos-13
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -107,7 +107,6 @@ jobs:
         run: |
           ./neodax -h | head -1
           node js/test/basic.js
-
 
   node-matrix:
     name: Node ${{ matrix.node }} · Linux x64
@@ -140,6 +139,14 @@ jobs:
     name: CI Pass
     needs: [ linux-gcc, linux-clang, linux-arm64, macos-arm64, macos-x64, node-matrix ]
     runs-on: ubuntu-latest
+    if: always()
     steps:
-      - name: Done
-        run: echo "All jobs completed successfully"
+      - name: Check Results
+        run: |
+          if [[ "${{ needs.linux-gcc.result }}" != "success" ]] || \
+             [[ "${{ needs.linux-clang.result }}" != "success" ]] || \
+             [[ "${{ needs.macos-x64.result }}" != "success" ]]; then
+            echo "Kritikal job gagal!"
+            exit 1
+          fi
+          echo "Semua aman!"
