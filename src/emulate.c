@@ -34,7 +34,7 @@ typedef struct {
     int        npages;
     int        steps;
     int        halted;
-    char       halt_reason[64];
+    char       halt_reason[192];
     uint8_t   *code_base;
     size_t     code_size;
     uint64_t   code_vaddr;
@@ -447,7 +447,7 @@ void dax_emulate_func(dax_binary_t *bin, int func_idx,
 
         dax_func_t *cur_fn=dax_func_find(bin,e->pc);
         if(cur_fn&&cur_fn->start!=fn->start) {
-            snprintf(e->halt_reason,sizeof(e->halt_reason),"jumped to %s",cur_fn->name);
+            snprintf(e->halt_reason,sizeof(e->halt_reason),"jumped to %.48s",cur_fn->name);
             break;
         }
     }

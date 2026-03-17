@@ -69,13 +69,15 @@ static int sexpr_binop(sexpr_op_t op, int l, int r, uint8_t bits) {
     return idx;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
 static void sexpr_print(int idx, char *buf, size_t bufsz) {
     if (bufsz < 4 || idx < 0 || idx >= g_npool) {
         snprintf(buf, bufsz, "?");
         return;
     }
     sym_expr_t *e = &g_pool[idx];
-    char l[64], r[64];
+    char l[256], r[256];
 
     switch (e->op) {
         case SEXPR_CONST:
@@ -115,6 +117,7 @@ static void sexpr_print(int idx, char *buf, size_t bufsz) {
             snprintf(buf,bufsz,"expr(%d)",idx); return;
     }
 }
+#pragma GCC diagnostic pop
 
 typedef struct {
     int       expr_idx;
@@ -439,7 +442,7 @@ void dax_symexec_func(dax_binary_t *bin, int func_idx,
                 di = arm64_reg_idx(tmp);
             }
             if (di >= 0 && di < MAX_SYM_REGS) {
-                char expr_str[128];
+                char expr_str[512];
                 sexpr_print(state.regs[di].expr_idx, expr_str, sizeof(expr_str));
                 if (state.regs[di].is_concrete) {
                     fprintf(out, "  %s  → %s%s = 0x%llx%s\n",
@@ -473,7 +476,7 @@ void dax_symexec_func(dax_binary_t *bin, int func_idx,
                 fprintf(out, "%s         = 0x%llx%s\n", CP,
                         (unsigned long long)state.regs[0].concrete, CR);
             } else {
-                char expr_str[128];
+                char expr_str[512];
                 sexpr_print(state.regs[0].expr_idx, expr_str, sizeof(expr_str));
                 fprintf(out, "%s         = %s%s\n", CP, expr_str, CR);
             }

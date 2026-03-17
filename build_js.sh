@@ -102,7 +102,7 @@ LIB_SRCS="src/loader.c src/disasm.c src/x86_decode.c src/arm64_decode.c \
     src/symbols.c src/demangle.c src/analysis.c src/cfg.c src/daxc.c \
     src/interactive.c src/loops.c src/callgraph.c src/correct.c \
     src/riscv_decode.c src/unicode.c src/sha256.c src/main.c \
-    src/symexec.c src/decomp.c src/emulate.c src/entropy.c"
+    src/symexec.c src/decomp.c src/emulate.c src/entropy.c src/macho.c"
 
 CFLAGS="-shared -fPIC -O2 \
     -I./include \

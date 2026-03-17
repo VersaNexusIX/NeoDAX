@@ -18,7 +18,8 @@ SRCS = src/main.c          \
        src/symexec.c       \
        src/decomp.c        \
        src/emulate.c       \
-       src/entropy.c
+       src/entropy.c       \
+       src/macho.c
 
 TARGET  = neodax
 ASM_SRC =
@@ -98,6 +99,7 @@ BASE_CFLAGS = -O2 -Wall -Wextra          \
               -Wno-unused-variable        \
               -Wno-unused-parameter       \
               -Wno-unused-function        \
+              -Wno-format-truncation      \
               -I./include                 \
               -std=c99                    \
               -U_FORTIFY_SOURCE           \
@@ -229,11 +231,11 @@ COMPILER_VER := $(shell $(CC) --version 2>/dev/null | head -1)
 all: _banner $(TARGET) js
 	@printf '$(GREEN)$(BOLD)\n'
 	@printf '  ╔══════════════════════════════════════════════╗\n'
-	@printf '  ║  ✓  NeoDAX v1.0.0  built successfully        ║\n'
+	@printf '  ║  ✓  NeoDAX v1.0.0  built successfully       ║\n'
 	@printf '  ║                                              ║\n'
-	@printf '  ║  $(CYAN)./$(TARGET)$(GREEN) $(GREY)<binary>$(GREEN)                run        ║\n'
-	@printf '  ║  $(CYAN)./$(TARGET)$(GREEN) $(GREY)-h$(GREEN)                      help       ║\n'
-	@printf '  ║  $(CYAN)./$(TARGET)$(GREEN) $(GREY)-x -u <binary>$(GREEN)          full RE    ║\n'
+	@printf '  ║  $(CYAN)./$(TARGET)$(GREEN) $(GREY)<binary>$(GREEN)                run      ║\n'
+	@printf '  ║  $(CYAN)./$(TARGET)$(GREEN) $(GREY)-h$(GREEN)                      help     ║\n'
+	@printf '  ║  $(CYAN)./$(TARGET)$(GREEN) $(GREY)-x -u <binary>$(GREEN)          full RE  ║\n'
 	@printf '  ╚══════════════════════════════════════════════╝\n'
 	@printf '$(RESET)\n'
 
@@ -263,6 +265,15 @@ $(TARGET): $(OBJS)
 src/%.o: src/%.c
 	@printf '  $(BLUE)Compiling$(RESET) $(GREY)→$(RESET) $(WHITE)%-32s$(RESET)\n' '$<'
 	@$(CC) $(CFLAGS) -c $< -o $@
+
+# These files use intentionally-truncated snprintf for display — suppress the warning
+src/symexec.o: src/symexec.c
+	@printf '  $(BLUE)Compiling$(RESET) $(GREY)→$(RESET) $(WHITE)%-32s$(RESET)\n' '$<'
+	@$(CC) $(CFLAGS) -Wno-format-truncation -c $< -o $@
+
+src/decomp.o: src/decomp.c
+	@printf '  $(BLUE)Compiling$(RESET) $(GREY)→$(RESET) $(WHITE)%-32s$(RESET)\n' '$<'
+	@$(CC) $(CFLAGS) -Wno-format-truncation -c $< -o $@
 
 arch/%.o: arch/%.S
 	@printf '  $(MAGENTA)Assembling$(RESET)$(GREY)→$(RESET) $(WHITE)%-32s$(RESET)\n' '$<'

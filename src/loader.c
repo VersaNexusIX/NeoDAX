@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "dax.h"
+#include "macho.h"
 #include "elf.h"
 #include "pe.h"
 
@@ -110,6 +111,11 @@ int dax_load_binary(const char *path, dax_binary_t *bin) {
             return dax_parse_elf(bin);
         } else if (magic16 == PE_DOS_MAGIC) {
             return dax_parse_pe(bin);
+        } else if (magic32 == MACHO_MAGIC_64_LE || magic32 == MACHO_MAGIC_64    ||
+                   magic32 == MACHO_MAGIC_32_LE || magic32 == MACHO_MAGIC_32    ||
+                   magic32 == MACHO_FAT_MAGIC   || magic32 == MACHO_FAT_MAGIC_LE) {
+            dax_compute_sha256(bin);
+            return dax_parse_macho(bin);
         } else {
             bin->fmt  = FMT_RAW;
             bin->arch = ARCH_UNKNOWN;

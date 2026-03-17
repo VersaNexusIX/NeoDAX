@@ -149,14 +149,14 @@ static void ssa_lift_arm64_insn(ssa_ctx_t *ctx, const char *mnem,
     uint8_t is32 = (a1[0] == 'w') ? 32 : 64;
 
     /* Strip 'w' prefix for reg lookup */
-    char rb1[16]="", rb2[16]="", rb3[16]="";
+    char rb1[32]="", rb2[32]="", rb3[32]="";
     {
         const char *s = a1; if(*s=='w'||*s=='x') s++;
-        snprintf(rb1,16,"r%s",s);
+        snprintf(rb1,32,"r%.28s",s);
         s=a2; if(*s=='w'||*s=='x') s++;
-        snprintf(rb2,16,"r%s",s);
+        snprintf(rb2,32,"r%.28s",s);
         s=a3; if(*s=='w'||*s=='x') s++;
-        snprintf(rb3,16,"r%s",s);
+        snprintf(rb3,32,"r%.28s",s);
     }
     if (strcmp(a1,"xzr")==0||strcmp(a1,"wzr")==0) rb1[0]='\0';
     if (strcmp(a2,"xzr")==0||strcmp(a2,"wzr")==0) { snprintf(rb2,16,"0"); }

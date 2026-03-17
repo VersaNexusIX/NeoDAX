@@ -432,10 +432,9 @@ static napi_value ndx_disasm_json(napi_env env, napi_callback_info info) {
             off+=(size_t)insn.length;
         }
     } else if (bin->arch==ARCH_ARM64) {
-        typedef struct { char mnemonic[32]; char operands[256]; } a64_insn_t;
         while (off+4<=sz) {
             uint32_t raw=(uint32_t)(code[off])|(code[off+1]<<8)|(code[off+2]<<16)|(code[off+3]<<24);
-            a64_insn_t insn; a64_decode(raw,base+off,&insn);
+            a64_insn_t insn; memset(&insn,0,sizeof(insn)); a64_decode(raw,base+off,&insn);
             if (idx>=offset_n && count<limit) {
                 napi_value o; napi_create_object(env,&o);
                 set_u64(env,o,"address",base+off);
@@ -608,12 +607,32 @@ static napi_value ndx_read_bytes(napi_env env, napi_callback_info info) {
         dax_section_t *s=&bin->sections[i];
         if(addr<s->vaddr||addr>=s->vaddr+s->size) continue;
         uint64_t off=s->offset+(addr-s->vaddr);
+        if(off>=bin->size) continue;
         if(off+rlen>bin->size) rlen=(size_t)(bin->size-off);
-        napi_value buf; void *data;
-        napi_create_arraybuffer(env,rlen,&data,&buf);
-        memcpy(data,bin->data+off,rlen);
+        napi_value buf; void *bdata;
+        napi_create_arraybuffer(env,rlen,&bdata,&buf);
+        memcpy(bdata,bin->data+off,rlen);
         napi_value view; napi_create_typedarray(env,napi_uint8_array,rlen,buf,0,&view);
         return view;
+    }
+    /* Fallback: if entry is past a known section (common in Mach-O),
+       try to find its file offset via the first executable section's base */
+    if(bin->nsections>0 && bin->base>0 && addr>=bin->base){
+        for(int i=0;i<bin->nsections;i++){
+            dax_section_t *s=&bin->sections[i];
+            if(s->type!=SEC_TYPE_CODE||s->offset==0) continue;
+            /* estimate file offset assuming vaddr-base == fileoff-section_start */
+            uint64_t vdiff = addr - s->vaddr;
+            if(vdiff < s->size){
+                uint64_t off = s->offset + vdiff;
+                if(off+rlen>bin->size) rlen=(size_t)(bin->size-off);
+                napi_value buf; void *bdata;
+                napi_create_arraybuffer(env,rlen,&bdata,&buf);
+                memcpy(bdata,bin->data+off,rlen);
+                napi_value view; napi_create_typedarray(env,napi_uint8_array,rlen,buf,0,&view);
+                return view;
+            }
+        }
     }
     napi_value n; napi_get_null(env,&n); return n;
 }
@@ -710,7 +729,8 @@ static napi_value ndx_symexec(napi_env env, napi_callback_info info) {
     else            dax_symexec_all(bin,&opts,stream);
     fclose(stream);
     napi_value r; napi_create_string_utf8(env,buf?buf:"",bsz,&r);
-    if(buf)free(buf); return r;
+    if(buf) { free(buf); }
+    return r;
 }
 
 static napi_value ndx_ssa(napi_env env, napi_callback_info info) {
@@ -728,7 +748,8 @@ static napi_value ndx_ssa(napi_env env, napi_callback_info info) {
     else            dax_ssa_lift_all(bin,&opts,stream);
     fclose(stream);
     napi_value r; napi_create_string_utf8(env,buf?buf:"",bsz,&r);
-    if(buf)free(buf); return r;
+    if(buf) { free(buf); }
+    return r;
 }
 
 static napi_value ndx_decompile(napi_env env, napi_callback_info info) {
@@ -746,7 +767,8 @@ static napi_value ndx_decompile(napi_env env, napi_callback_info info) {
     else            dax_decompile_all(bin,&opts,stream);
     fclose(stream);
     napi_value r; napi_create_string_utf8(env,buf?buf:"",bsz,&r);
-    if(buf)free(buf); return r;
+    if(buf) { free(buf); }
+    return r;
 }
 
 static napi_value ndx_emulate(napi_env env, napi_callback_info info) {
@@ -778,7 +800,8 @@ static napi_value ndx_emulate(napi_env env, napi_callback_info info) {
     dax_emulate_func(bin,func_idx,init_regs,8,&opts,stream);
     fclose(stream);
     napi_value r; napi_create_string_utf8(env,buf?buf:"",bsz,&r);
-    if(buf)free(buf); return r;
+    if(buf) { free(buf); }
+    return r;
 }
 
 
@@ -793,7 +816,8 @@ static napi_value ndx_entropy(napi_env env, napi_callback_info info) {
     dax_entropy_scan(bin,&opts,stream);
     fclose(stream);
     napi_value r; napi_create_string_utf8(env,buf?buf:"",bsz,&r);
-    if(buf)free(buf); return r;
+    if(buf) { free(buf); }
+    return r;
 }
 
 static napi_value ndx_rda(napi_env env, napi_callback_info info) {
@@ -806,7 +830,10 @@ static napi_value ndx_rda(napi_env env, napi_callback_info info) {
     dax_section_t *sec=NULL;
     for(int i=0;i<bin->nsections;i++)
         if(strcmp(bin->sections[i].name,section_name)==0){sec=&bin->sections[i];break;}
-    if(!sec){napi_value n;napi_get_null(env,&n);return n;}
+    if(!sec){
+        /* Section not found — return empty string (not null) so typeof === 'string' */
+        napi_value empty; napi_create_string_utf8(env,"",0,&empty); return empty;
+    }
     ensure_symbols(bin);
     char *buf=NULL; size_t bsz=0;
     FILE *stream=open_memstream(&buf,&bsz);
@@ -815,7 +842,8 @@ static napi_value ndx_rda(napi_env env, napi_callback_info info) {
     dax_rda_section(bin,sec,sec->vaddr,&opts,stream);
     fclose(stream);
     napi_value r; napi_create_string_utf8(env,buf?buf:"",bsz,&r);
-    if(buf)free(buf); return r;
+    if(buf) { free(buf); }
+    return r;
 }
 
 static napi_value ndx_ivf(napi_env env, napi_callback_info info) {
@@ -829,7 +857,8 @@ static napi_value ndx_ivf(napi_env env, napi_callback_info info) {
     dax_ivf_scan(bin,&opts,stream);
     fclose(stream);
     napi_value r; napi_create_string_utf8(env,buf?buf:"",bsz,&r);
-    if(buf)free(buf); return r;
+    if(buf) { free(buf); }
+    return r;
 }
 
 NAPI_MODULE_INIT() {
