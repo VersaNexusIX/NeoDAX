@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>NeoDAX // Binary Analysis Framework</title>
+
+<meta name="description" content="NeoDAX is a modern binary analysis and disassembly framework with CLI and JavaScript API. Analyze binaries, explore control flow, and build reverse engineering tools.">
+<meta name="keywords" content="NeoDAX, binary analysis, reverse engineering, disassembler, CFG, xrefs, ARM64, x86, RISC-V, malware analysis, crackme, decompiler">
+<meta name="author" content="VersaNexusIX">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0f172a">
+
+<meta property="og:title" content="NeoDAX // Binary Analysis Framework">
+<meta property="og:description" content="Analyze binaries, explore control flow, and build reverse engineering tools with NeoDAX.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://github.com/VersaNexusIX/NeoDAX">
+<meta property="og:image" content="https://files.catbox.moe/rperzp.jpg">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NeoDAX // Binary Analysis Framework">
+<meta name="twitter:description" content="Binary analysis, disassembly, CFG, symbolic execution — all in one framework.">
+<meta name="twitter:image" content="https://files.catbox.moe/rperzp.jpg">
+
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="canonical" href="https://github.com/VersaNexusIX/NeoDAX">
+<link rel="stylesheet" href="shared.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "NeoDAX",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Linux, macOS, Android",
+  "description": "NeoDAX is a binary analysis and disassembly framework with CLI and JavaScript API. It supports reverse engineering workflows including CFG analysis, symbolic execution, and decompilation.",
+  "url": "https://github.com/VersaNexusIX/NeoDAX",
+  "author": {
+    "@type": "Person",
+    "name": "VersaNexusIX"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "softwareVersion": "1.0.0",
+  "keywords": [
+    "binary analysis",
+    "reverse engineering",
+    "disassembler",
+    "CFG",
+    "symbolic execution",
+    "malware analysis"
+  ]
+}
+</script>
+<style>
+.layout{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.page-main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.hero{max-width:960px;margin:0 auto;padding:48px 48px 0;}
+.hero-ascii{font-family:'Share Tech Mono',monospace;font-size:.62rem;line-height:1.2;color:var(--green-bright);text-shadow:0 0 10px rgba(0,255,65,.4);white-space:pre;margin-bottom:20px;animation:fadeIn .5s ease;}
+.hero-tag{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:300;color:rgba(0,255,65,.6);letter-spacing:.15em;text-transform:uppercase;margin-bottom:28px;}
+.hero-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px;}
+.badge{font-size:.6rem;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border:1px solid;}
+.badge-g{border-color:var(--green-dim);color:var(--green-mid);background:rgba(0,255,65,.06);}
+.badge-y{border-color:rgba(255,200,0,.3);color:rgba(255,200,0,.8);background:rgba(255,200,0,.04);}
+.badge-b{border-color:rgba(0,200,255,.3);color:rgba(0,200,255,.8);background:rgba(0,200,255,.04);}
+.quick-install{background:#020a04;border:1px solid var(--green-dark);border-left:3px solid var(--green-bright);padding:14px 18px;margin-bottom:32px;font-size:.75rem;color:var(--green-bright);line-height:1.9;overflow-x:auto;white-space:nowrap;}
+.prompt{color:var(--green-dim);user-select:none;}.cmd{color:var(--green-bright);}.cmt{color:var(--green-dark);}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--green-dark);border:1px solid var(--green-dark);margin-bottom:40px;}
+.stat-cell{background:var(--black-soft);padding:16px;text-align:center;}
+.stat-value{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:700;color:var(--green-bright);display:block;text-shadow:0 0 10px rgba(0,255,65,.4);}
+.stat-label{font-size:.55rem;color:var(--green-dim);letter-spacing:.12em;text-transform:uppercase;font-family:'Rajdhani',sans-serif;font-weight:500;margin-top:2px;}
+.sec-wrap{max-width:960px;margin:0 auto;padding:0 48px;}
+.sec-label{font-family:'Rajdhani',sans-serif;font-size:.7rem;color:var(--green-dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:14px;}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:40px;}
+.feat-card{border:1px solid var(--green-dark);background:var(--black-panel);padding:16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;text-decoration:none;display:block;user-select:none;}
+.feat-card::before{content:'';position:absolute;top:0;left:0;width:2px;height:100%;background:var(--green-mid);transform:scaleY(0);transition:transform .2s;transform-origin:bottom;}
+.feat-card:hover{border-color:var(--green-mid);background:rgba(0,255,65,.04);}
+.feat-card:hover::before{transform:scaleY(1);}
+.feat-title{font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;color:var(--green-bright);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.feat-desc{font-size:.67rem;color:var(--green-dim);line-height:1.5;letter-spacing:.02em;}
+.feat-flag{font-size:.6rem;color:var(--green-mid);background:rgba(0,255,65,.07);border:1px solid rgba(0,255,65,.15);padding:1px 6px;display:inline-block;margin-top:8px;}
+.compat-tbl{width:100%;border-collapse:collapse;font-size:.7rem;border:1px solid var(--green-dark);margin-bottom:40px;}
+.compat-tbl th{background:rgba(0,255,65,.08);color:var(--green-bright);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 14px;border:1px solid var(--green-dark);font-size:.65rem;}
+.compat-tbl td{padding:7px 14px;border:1px solid rgba(0,255,65,.1);vertical-align:middle;}
+.compat-tbl tr:hover td{background:rgba(0,255,65,.04);}
+.cy{color:var(--green-bright);text-align:center;} .cn{color:var(--green-dark);text-align:center;} .cn2{color:var(--green-bright);font-weight:bold;}
+.cta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:40px;}
+.cta-card{border:1px solid var(--green-dark);background:var(--black-panel);padding:20px 24px;text-decoration:none;transition:all .15s;display:block;user-select:none;}
+.cta-card:hover{border-color:var(--green-bright);background:rgba(0,255,65,.05);}
+.cta-title{font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:700;color:var(--green-bright);letter-spacing:.08em;margin-bottom:8px;}
+.cta-desc{font-size:.7rem;color:var(--green-dim);line-height:1.6;}
+.cta-arrow{font-size:.8rem;color:var(--green-mid);margin-top:10px;display:block;}
+@media(max-width:768px){
+  .hero{padding:20px 16px 0;} .hero-ascii{font-size:.4rem;} .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .sec-wrap{padding:0 16px;} .feat-grid{grid-template-columns:1fr;} .cta-grid{grid-template-columns:1fr;}
+  .compat-tbl{display:block;overflow-x:auto;white-space:nowrap;}
+}
+@media(max-width:380px){.hero-ascii{font-size:.34rem;}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="header">
+    <div style="display:flex;align-items:center;">
+      <div class="hamburger" id="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
+      <a class="logo" href="index.html"><span class="logo-bracket">[</span>NEODAX<span class="logo-bracket">]</span><span class="logo-sub">BINARY ANALYSIS FRAMEWORK</span></a>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <nav class="header-nav">
+        <a class="header-nav-link active" href="index.html">Home</a>
+        <a class="header-nav-link" href="docs.html">Docs</a>
+        <a class="header-nav-link" href="learn.html">Learn</a>
+      </nav>
+      <div class="header-meta"><span><span class="status-dot"></span>v1.0.0</span><span class="header-badge">MIT</span><span class="header-badge">C99</span></div>
+    </div>
+  </header>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <nav class="sidebar" id="sidebar" style="position:fixed;top:52px;z-index:300;">
+    <div class="search-box"><input class="search-input" type="text" placeholder="// search..." id="searchInput" oninput="filterNav(this.value)"></div>
+    <div class="sidebar-section-header">▸ Navigation</div>
+    <a class="nav-item active" href="index.html"  onclick="onNavClick()"><span class="nav-icon">◈</span> Home</a>
+    <a class="nav-item"        href="docs.html"   onclick="onNavClick()"><span class="nav-icon">◧</span> Documentation</a>
+    <a class="nav-item"        href="learn.html"  onclick="onNavClick()"><span class="nav-icon">⬡</span> Learning Path</a>
+    <div class="sidebar-section-header">▸ External</div>
+    <a class="nav-item" href="https://github.com/VersaNexusIX/NeoDAX" target="_blank"><span class="nav-icon">⊕</span> GitHub Repo</a>
+    <a class="nav-item" href="https://instagram.com/versa_nexusix" target="_blank"><span class="nav-icon">⊕</span> Instagram</a>
+    <a class="nav-item" href="https://portfolio.versas.my.id" target="_blank"><span class="nav-icon">⊕</span> Portfolio</a>
+  </nav>
+  <main class="page-main">
+    <div class="hero">
+      <div class="hero-ascii"> 
+      
+      
+█▄░█ █▀ ▄▀▄
+█░▀█ █▀ █░█
+▀░░▀ ▀▀ ░▀░
+
+      <span class="cursor"></span></div>
+      <div class="hero-tag">Multi-architecture binary analysis framework</div>
+      <div class="hero-badges">
+        <span class="badge badge-g">v1.0.0</span><span class="badge badge-g">MIT License</span>
+        <span class="badge badge-y">C99</span><span class="badge badge-y">Zero Dependencies</span>
+        <span class="badge badge-b">x86-64</span><span class="badge badge-b">AArch64</span><span class="badge badge-b">RISC-V</span>
+      </div>
+      <div class="quick-install">
+        <div><span class="cmt"># Clone &amp; build</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">git clone https://github.com/VersaNexusIX/NeoDAX.git &amp;&amp; cd NeoDAX &amp;&amp; make</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">./neodax -x ./binary</span></div>
+        <div style="margin-top:8px"><span class="cmt"># Or via npm</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm install neodax</span></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-cell"><span class="stat-value">3</span><span class="stat-label">Architectures</span></div>
+        <div class="stat-cell"><span class="stat-value">5</span><span class="stat-label">Formats</span></div>
+        <div class="stat-cell"><span class="stat-value">16</span><span class="stat-label">Analysis Panels</span></div>
+        <div class="stat-cell"><span class="stat-value">0</span><span class="stat-label">Dependencies</span></div>
+      </div>
+    </div>
+    <div class="sec-wrap">
+      <div class="sec-label">// Core Features</div>
+      <div class="feat-grid">
+        <a class="feat-card" href="docs.html"><div class="feat-title">Disassembler</div><div class="feat-desc">x86-64, AArch64, RISC-V RV64GC. Symbol resolution, C++ demangling, instruction group coloring.</div><span class="feat-flag">-y -d -g -a</span></a>
+        <a class="feat-card" href="docs.html"><div class="feat-title">CFG Builder</div><div class="feat-desc">Two-pass algorithm with jump-trick awareness. Loop detection via dominator analysis.</div><span class="feat-flag">-C -L</span></a>
+        <a class="feat-card" href="docs.html"><div class="feat-title">Decompiler & SSA</div><div class="feat-desc">ARM64 SSA lifting with versioned register assignments. Pseudo-C output from IR.</div><span class="feat-flag">-Q -D</span></a>
+        <a class="feat-card" href="docs.html"><div class="feat-title">ARM64 Emulator</div><div class="feat-desc">Concrete execution with 32 GP registers, 64 memory pages, CPSR flags. Step-by-step trace.</div><span class="feat-flag">-I</span></a>
+        <a class="feat-card" href="docs.html"><div class="feat-title">Entropy Analysis</div><div class="feat-desc">Shannon entropy sliding window. Detects packed, encrypted, compressed sections automatically.</div><span class="feat-flag">-e</span></a>
+        <a class="feat-card" href="docs.html"><div class="feat-title">JavaScript API</div><div class="feat-desc">Native N-API addon. TypeScript declarations included. Web UI with 16 analysis panels.</div><span class="feat-flag">npm install neodax</span></a>
+      </div>
+      <div class="sec-label">// Format & Architecture Matrix</div>
+      <table class="compat-tbl">
+        <thead><tr><th>Format</th><th>x86-64</th><th>AArch64</th><th>RISC-V RV64</th><th>Decompiler</th><th>Emulator</th></tr></thead>
+        <tbody>
+          <tr><td class="cn2">ELF64/32</td><td class="cy">✓</td><td class="cy">✓</td><td class="cy">✓</td><td class="cy">ARM64</td><td class="cy">ARM64</td></tr>
+          <tr><td class="cn2">PE64+/32</td><td class="cy">✓</td><td class="cy">✓</td><td class="cn">—</td><td class="cy">ARM64</td><td class="cy">ARM64</td></tr>
+          <tr><td class="cn2">Mach-O 64</td><td class="cy">✓</td><td class="cy">✓</td><td class="cn">—</td><td class="cy">ARM64</td><td class="cy">ARM64</td></tr>
+          <tr><td class="cn2">Mach-O FAT</td><td class="cy">✓</td><td class="cy">✓</td><td class="cn">—</td><td class="cy">ARM64</td><td class="cy">ARM64</td></tr>
+          <tr><td class="cn2">Raw Binary</td><td class="cy">✓</td><td class="cy">✓</td><td class="cy">✓</td><td class="cn">—</td><td class="cn">—</td></tr>
+        </tbody>
+      </table>
+      <div class="sec-label">// Get Started</div>
+      <div class="cta-grid">
+        <a class="cta-card" href="docs.html"><div class="cta-title">// Documentation</div><div class="cta-desc">Full API reference, CLI flags, architecture internals, algorithms, format specs, integration guides, and security policy.</div><span class="cta-arrow">→ Browse Docs</span></a>
+        <a class="cta-card" href="learn.html"><div class="cta-title">// Learning Path</div><div class="cta-desc">67 lessons from zero to advanced. Foundation → Basic Analysis → CFG → JS API → Symbolic Execution → Real-World RE.</div><span class="cta-arrow">→ Start Learning</span></a>
+      </div>
+    </div>
+    <div id="footer-mount"></div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>document.getElementById('footer-mount').innerHTML=renderFooter();</script>
+</body>
+</html>

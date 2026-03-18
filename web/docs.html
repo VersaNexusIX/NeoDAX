@@ -1,0 +1,2585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>NeoDAX // Documentation</title>
+
+<meta name="description" content="Official NeoDAX documentation. Learn binary analysis, reverse engineering, control flow graphs, symbolic execution, and build custom analysis tools step-by-step.">
+<meta name="keywords" content="NeoDAX docs, binary analysis tutorial, reverse engineering guide, CFG tutorial, symbolic execution, disassembler learning path">
+<meta name="author" content="VersaNexusIX">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0f172a">
+
+<meta property="og:title" content="NeoDAX Documentation">
+<meta property="og:description" content="Step-by-step learning path for binary analysis and reverse engineering using NeoDAX.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://github.com/VersaNexusIX/NeoDAX">
+<meta property="og:image" content="https://files.catbox.moe/rperzp.jpg">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NeoDAX Documentation">
+<meta name="twitter:description" content="Learn reverse engineering from zero to advanced with NeoDAX.">
+<meta name="twitter:image" content="https://files.catbox.moe/rperzp.jpg">
+
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="canonical" href="https://github.com/VersaNexusIX/NeoDAX/">
+ <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "NeoDAX Documentation",
+  "description": "Comprehensive learning path for binary analysis and reverse engineering using NeoDAX.",
+  "author": {
+    "@type": "Person",
+    "name": "VersaNexusIX"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "NeoDAX"
+  },
+  "url": "https://github.com/VersaNexusIX/NeoDAX",
+  "about": [
+    "Binary Analysis",
+    "Reverse Engineering",
+    "Control Flow Graph",
+    "Symbolic Execution",
+    "Disassembly"
+  ],
+  "educationalLevel": "Beginner to Advanced",
+  "inLanguage": "en"
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+.loading { text-align:center; padding:60px; color:var(--green-dim); font-size:.75rem; }
+.hero { padding: 40px 48px 48px; max-width: 900px; margin: 0 auto; }
+.hero-ascii { font-family:'Share Tech Mono',monospace; font-size:.62rem; line-height:1.2; color:var(--green-bright); text-shadow:0 0 10px rgba(0,255,65,.4); white-space:pre; margin-bottom:24px; animation:fadeIn .5s ease; }
+.hero-tagline { font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:300; color:rgba(0,255,65,.6); letter-spacing:.15em; text-transform:uppercase; margin-bottom:32px; }
+.stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--green-dark); border:1px solid var(--green-dark); margin-bottom:32px; }
+.stat-cell { background:var(--black-soft); padding:16px; text-align:center; }
+.stat-value { font-family:'Orbitron',sans-serif; font-size:1.3rem; font-weight:700; color:var(--green-bright); display:block; text-shadow:0 0 10px rgba(0,255,65,.4); }
+.stat-label { font-size:.55rem; color:var(--green-dim); letter-spacing:.12em; text-transform:uppercase; font-family:'Rajdhani',sans-serif; font-weight:500; margin-top:2px; }
+.feature-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:32px; }
+.feature-card { border:1px solid var(--green-dark); background:var(--black-panel); padding:16px; cursor:pointer; transition:all .15s; position:relative; overflow:hidden; user-select:none; -webkit-user-select:none; }
+.feature-card::before { content:''; position:absolute; top:0; left:0; width:2px; height:100%; background:var(--green-mid); transform:scaleY(0); transition:transform .2s; transform-origin:bottom; }
+.feature-card:hover { border-color:var(--green-mid); background:rgba(0,255,65,.04); }
+.feature-card:hover::before { transform:scaleY(1); }
+.feature-title { font-family:'Rajdhani',sans-serif; font-size:.85rem; font-weight:700; color:var(--green-bright); letter-spacing:.08em; text-transform:uppercase; margin-bottom:6px; }
+.feature-desc  { font-size:.67rem; color:var(--green-dim); line-height:1.5; }
+.feature-flag  { font-size:.6rem; color:var(--green-mid); background:rgba(0,255,65,.07); border:1px solid rgba(0,255,65,.15); padding:1px 6px; display:inline-block; margin-top:8px; }
+.quick-install { background:#020a04; border:1px solid var(--green-dark); border-left:3px solid var(--green-bright); padding:14px 18px; margin:20px 0; font-size:.75rem; color:var(--green-bright); line-height:1.9; overflow-x:auto; white-space:nowrap; }
+.prompt { color:var(--green-dim); user-select:none; } .cmd { color:var(--green-bright); } .comment { color:var(--green-dark); }
+.doc-index-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:32px; }
+@media (max-width:768px) {
+  .hero { padding:20px 16px 20px; }
+  .hero-ascii { font-size:.42rem; overflow-x:auto; display:block; }
+  .hero-tagline { font-size:.75rem; }
+  .stat-grid { grid-template-columns:repeat(2,1fr); }
+  .feature-grid { grid-template-columns:1fr; }
+  .doc-index-grid { grid-template-columns:1fr !important; }
+  .content-wrapper { padding:20px 16px 0; }
+}
+@media (max-width:380px) { .hero-ascii { font-size:.36rem; } }
+</style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="layout">
+  <header class="header">
+    <div style="display:flex;align-items:center;">
+      <div class="hamburger" id="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
+      <a class="logo" href="index.html" style="text-decoration:none;">
+        <span class="logo-bracket">[</span>NEODAX<span class="logo-bracket">]</span>
+        <span class="logo-sub">BINARY ANALYSIS FRAMEWORK</span>
+      </a>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <nav class="header-nav">
+        <a class="header-nav-link" href="index.html">Home</a>
+        <a class="header-nav-link active" href="docs.html">Docs</a>
+        <a class="header-nav-link" href="learn.html">Learn</a>
+      </nav>
+      <div class="header-meta"><span><span class="status-dot"></span>ONLINE</span><span class="header-badge">v1.0.0</span><span class="header-badge">MIT</span><span class="header-badge">C99·JS</span></div>
+    </div>
+  </header>
+  <nav class="sidebar" id="sidebar">
+    <div class="search-box"><input class="search-input" type="text" placeholder="// search docs..." id="searchInput" oninput="filterNav(this.value)"></div>
+    <div class="sidebar-section-header">▸ Overview</div>
+    <a class="nav-item active" id="nav-home" onclick="showHome();onNavClick();" href="javascript:void(0)"><span class="nav-icon">◈</span> Introduction</a>
+    <a class="nav-item" id="nav-changelog" onclick="loadDoc('CHANGELOG','changelog');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◉</span> Changelog</a>
+    <div class="sidebar-section-header">▸ Getting Started</div>
+    <a class="nav-item" id="nav-building" onclick="loadDoc('BUILDING','building');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⊕</span> Building</a>
+    <a class="nav-item" id="nav-npm" onclick="loadDoc('NPM_USAGE','npm');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⊕</span> NPM Usage</a>
+    <a class="nav-item" id="nav-examples" onclick="loadDoc('EXAMPLES','examples');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⊕</span> Examples</a>
+    <div class="sidebar-section-header">▸ Reference</div>
+    <a class="nav-item" id="nav-cli" onclick="loadDoc('CLI_REFERENCE','cli');onNavClick();" href="javascript:void(0)"><span class="nav-icon">▷</span> CLI Reference</a>
+    <a class="nav-item" id="nav-api" onclick="loadDoc('API','api');onNavClick();" href="javascript:void(0)"><span class="nav-icon">▷</span> C API</a>
+    <a class="nav-item" id="nav-binary-formats" onclick="loadDoc('BINARY_FORMATS','binary-formats');onNavClick();" href="javascript:void(0)"><span class="nav-icon">▷</span> Binary Formats</a>
+    <a class="nav-item" id="nav-format-daxc" onclick="loadDoc('FORMAT_DAXC','format-daxc');onNavClick();" href="javascript:void(0)"><span class="nav-icon">▷</span> .daxc Format</a>
+    <div class="sidebar-section-header">▸ Architecture</div>
+    <a class="nav-item" id="nav-architecture" onclick="loadDoc('ARCHITECTURE','architecture');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◧</span> Architecture</a>
+    <a class="nav-item" id="nav-algorithms" onclick="loadDoc('ALGORITHMS','algorithms');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◧</span> Algorithms</a>
+    <a class="nav-item" id="nav-function-detection" onclick="loadDoc('FUNCTION_DETECTION','function-detection');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◧</span> Function Detection</a>
+    <div class="sidebar-section-header">▸ Analysis Engine</div>
+    <a class="nav-item" id="nav-decompiler" onclick="loadDoc('DECOMPILER','decompiler');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⬡</span> Decompiler & SSA</a>
+    <a class="nav-item" id="nav-emulator" onclick="loadDoc('EMULATOR','emulator');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⬡</span> ARM64 Emulator</a>
+    <a class="nav-item" id="nav-obfuscation" onclick="loadDoc('OBFUSCATION','obfuscation');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⬡</span> Obfuscation</a>
+    <a class="nav-item" id="nav-unicode" onclick="loadDoc('UNICODE_DETECTION','unicode');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⬡</span> Unicode Detection</a>
+    <a class="nav-item" id="nav-macho" onclick="loadDoc('MACHO_SUPPORT','macho');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⬡</span> Mach-O Support</a>
+    <div class="sidebar-section-header">▸ Advanced</div>
+    <a class="nav-item" id="nav-performance" onclick="loadDoc('PERFORMANCE','performance');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◈</span> Performance</a>
+    <a class="nav-item" id="nav-fuzzing" onclick="loadDoc('FUZZING','fuzzing');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◈</span> Fuzzing</a>
+    <a class="nav-item" id="nav-porting" onclick="loadDoc('PORTING','porting');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◈</span> Porting</a>
+    <div class="sidebar-section-header">▸ Deployment</div>
+    <a class="nav-item" id="nav-integration" onclick="loadDoc('INTEGRATION','integration');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◉</span> Integration</a>
+    <a class="nav-item" id="nav-cicd" onclick="loadDoc('CICD_GUIDE','cicd');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◉</span> CI/CD Guide</a>
+    <a class="nav-item" id="nav-publishing" onclick="loadDoc('PUBLISHING','publishing');onNavClick();" href="javascript:void(0)"><span class="nav-icon">◉</span> Publishing</a>
+    <div class="sidebar-section-header">▸ Community</div>
+    <a class="nav-item" id="nav-contributing" onclick="loadDoc('CONTRIBUTING','contributing');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⊛</span> Contributing</a>
+    <a class="nav-item" id="nav-faq" onclick="loadDoc('FAQ','faq');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⊛</span> FAQ</a>
+    <a class="nav-item" id="nav-troubleshooting" onclick="loadDoc('TROUBLESHOOTING','troubleshooting');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⊛</span> Troubleshooting</a>
+    <a class="nav-item" id="nav-security" onclick="loadDoc('SECURITY','security');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⊛</span> Security</a>
+    <a class="nav-item" id="nav-support" onclick="loadDoc('SUPPORT','support');onNavClick();" href="javascript:void(0)"><span class="nav-icon">⊛</span> Support</a>
+    <div class="sidebar-section-header">▸ Pages</div>
+    <a class="nav-item" href="index.html" onclick="onNavClick()"><span class="nav-icon">◈</span> Home</a>
+    <a class="nav-item" href="learn.html" onclick="onNavClick()"><span class="nav-icon">⬡</span> Learning Path</a>
+  </nav>
+  <main class="main" id="mainContent"><!-- rendered by JS --></main>
+</div>
+<script src="shared.js"></script>
+<script>
+// ── DOCS DATA (embedded from README and key files) ──
+const docs = {
+  CHANGELOG: `# Changelog
+
+All notable changes to NeoDAX are documented here.
+
+---
+
+## [1.0.0] — 2025
+
+### Added — Mach-O Support
+
+- **\`src/macho.c\`** — Full Mach-O parser: FAT/universal binary support (ARM64 first, x86-64 fallback), Mach-O 64/32-bit little/big endian, section parsing, entry from \`LC_MAIN\`, symbol table from \`LC_SYMTAB\`.
+- **\`include/macho.h\`** — All required Mach-O structs and constants
+- **\`arch/arm64_macos.S\`** / **\`arch/x86_64_macos.S\`** — macOS assembly stubs (Mach-O syntax)
+
+### Added — npm Package
+
+- **\`package.json\`** at repo root — proper npm-publishable package with prebuilt support
+- **\`js/scripts/install.js\`** — rewritten: checks prebuilds → \`build_js.sh\` → inline compile → graceful failure
+- Automatic native addon compilation on \`npm install\` — no git clone needed
+
+### Fixed — disasmJson Segfault (x86-64, exit code 139)
+
+\`neodax_napi.c\` had a local typedef with **wrong field order** vs the real \`x86_insn_t\` in \`x86.h\`, causing OOB read → segfault. Fixed by using correct struct fields.
+
+### Fixed — Mach-O Magic Constants Inverted
+
+All 6 magic constants in \`macho.h\` had \`_LE\` and non-\`_LE\` values swapped, causing byte-swap of every Mach-O struct → parse failure. Fixed to correct endian-aware values.
+
+### Fixed — macOS \`open_memstream\` / \`_DARWIN_C_SOURCE\`
+
+\`neodax_napi.c\` now sets \`_DARWIN_C_SOURCE\` before all system headers on Apple platforms.
+
+### Fixed — ARM64 Function Detection on macOS Stripped Binaries
+
+Prologue detector now recognises \`sub sp, sp, #N\` as the most common macOS ARM64 function entry.`,
+
+  BUILDING: `# Building NeoDAX
+
+---
+
+## Requirements
+
+| Component | Minimum |
+|---|---|
+| C compiler | GCC ≥ 7 or Clang ≥ 6 |
+| Build system | GNU make (or \`gmake\` on BSD) |
+| External libs | **None** |
+| JS addon | Node.js ≥ 16 with dev headers |
+
+---
+
+## Linux (Debian / Ubuntu)
+
+\`\`\`bash
+sudo apt install build-essential nodejs libnode-dev
+git clone https://github.com/VersaNexusIX/NeoDAX.git
+cd NeoDAX && make
+\`\`\`
+
+## Linux (Fedora / RHEL)
+
+\`\`\`bash
+sudo dnf install gcc make nodejs nodejs-devel
+git clone https://github.com/VersaNexusIX/NeoDAX.git
+cd NeoDAX && make
+\`\`\`
+
+## Linux (Arch)
+
+\`\`\`bash
+sudo pacman -S base-devel nodejs
+git clone https://github.com/VersaNexusIX/NeoDAX.git
+cd NeoDAX && make
+\`\`\`
+
+## Android / Termux
+
+\`\`\`bash
+pkg update && pkg install nodejs clang make git
+git clone https://github.com/VersaNexusIX/NeoDAX.git
+cd NeoDAX && make
+\`\`\`
+
+## macOS
+
+\`\`\`bash
+xcode-select --install
+brew install node
+git clone https://github.com/VersaNexusIX/NeoDAX.git
+cd NeoDAX && make
+\`\`\`
+
+NeoDAX uses \`arch/arm64_macos.S\` on Apple Silicon and \`arch/x86_64_macos.S\` on Intel Mac — both selected automatically by the Makefile.
+
+## FreeBSD / OpenBSD
+
+\`\`\`bash
+# FreeBSD
+pkg install gmake node
+# OpenBSD
+pkg_add node
+
+git clone https://github.com/VersaNexusIX/NeoDAX.git
+cd NeoDAX && gmake
+\`\`\`
+
+## Windows (MSYS2 / MinGW)
+
+\`\`\`bash
+# In MSYS2 terminal
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-make
+git clone https://github.com/VersaNexusIX/NeoDAX.git
+cd NeoDAX && make
+\`\`\`
+
+## Build Targets
+
+| Target | Command | Output |
+|--------|---------|--------|
+| CLI tool | \`make\` | \`./neodax\` |
+| JS addon | \`make js\` | \`neodax.node\` |
+| Both | \`make all\` | Both |
+| Clean | \`make clean\` | — |`,
+
+  NPM_USAGE: `# NPM Usage
+
+---
+
+## Installation
+
+\`\`\`bash
+npm install neodax
+\`\`\`
+
+\`npm install\` automatically compiles the native addon. No git clone, no manual build step.
+
+## Quick Start
+
+\`\`\`js
+const neodax = require('neodax');
+
+// One-liner with auto-close
+neodax.withBinary('/path/to/binary', bin => {
+    const r = bin.analyze();
+    console.log(r.functions.length, 'functions,', r.xrefs.length, 'xrefs');
+    console.log(bin.decompile(0));   // pseudo-C (ARM64)
+    console.log(bin.entropy());      // packed/encrypted detection
+});
+\`\`\`
+
+TypeScript declarations included (\`js/index.d.ts\`) — no \`@types/neodax\` needed.
+
+## JavaScript API Reference
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| \`neodax.load(path)\` | Open binary, return handle | \`BinaryHandle\` |
+| \`neodax.withBinary(path, cb)\` | Open, call cb, auto-close | void |
+| \`bin.arch\` | Architecture string | \`string\` |
+| \`bin.sha256\` | SHA-256 hex digest | \`string\` |
+| \`bin.sections()\` | List sections | \`Section[]\` |
+| \`bin.symbols()\` | List symbols | \`Symbol[]\` |
+| \`bin.functions()\` | Detected functions | \`Function[]\` |
+| \`bin.analyze()\` | Full standard analysis | \`AnalysisResult\` |
+| \`bin.disassemble(section?)\` | Disassemble section | \`Instruction[]\` |
+| \`bin.cfg(funcIdx)\` | CFG for function | \`Block[]\` |
+| \`bin.xrefs()\` | Cross-reference table | \`Xref[]\` |
+| \`bin.entropy()\` | Entropy scan | \`EntropyResult[]\` |
+| \`bin.decompile(funcIdx)\` | Pseudo-C output | \`string\` |
+| \`bin.ssa(funcIdx)\` | SSA IR output | \`string\` |
+| \`bin.emulate(funcIdx, regs?)\` | ARM64 emulation | \`string\` |
+| \`bin.symexec(funcIdx)\` | Symbolic execution | \`string\` |
+| \`bin.close()\` | Release resources | void |
+
+## Express Server Example
+
+\`\`\`js
+const express = require('express');
+const neodax = require('neodax');
+const multer = require('multer');
+const app = express();
+const upload = multer({ dest: '/tmp/uploads/' });
+
+app.post('/analyze', upload.single('binary'), (req, res) => {
+    neodax.withBinary(req.file.path, bin => {
+        res.json({
+            arch: bin.arch,
+            sha256: bin.sha256,
+            functions: bin.functions().length,
+            sections: bin.sections()
+        });
+    });
+});
+
+app.listen(3000);
+\`\`\`
+
+## TypeScript Example
+
+\`\`\`ts
+import neodax from 'neodax';
+
+neodax.withBinary('./binary', (bin) => {
+    const funcs: Function[] = bin.functions();
+    funcs.forEach(f => console.log(f.name, f.addr.toString(16)));
+});
+\`\`\``,
+
+  EXAMPLES: `# Usage Examples
+
+Common recipes for CLI, JavaScript API, and REST server.
+
+---
+
+## CLI Recipes
+
+### Analyze a stripped Android binary
+
+\`\`\`bash
+./neodax -x -u ./libsomething.so
+\`\`\`
+
+### Find all functions in a binary
+
+\`\`\`bash
+./neodax -f -y ./binary | grep "│ \\["
+\`\`\`
+
+### Check if a binary is packed or encrypted
+
+\`\`\`bash
+./neodax -e ./binary | grep -E "PACKED|HIGH ENTROPY"
+\`\`\`
+
+### Find dead code after jump tricks
+
+\`\`\`bash
+./neodax -R ./binary | grep "DEAD:"
+\`\`\`
+
+### Find privileged instructions in a userspace binary
+
+\`\`\`bash
+./neodax -V ./binary | grep PRIV
+\`\`\`
+
+### Decompile an ARM64 binary to pseudo-C
+
+\`\`\`bash
+./neodax -f -D ./arm64_binary
+\`\`\`
+
+### Emulate function 0 and see register state
+
+\`\`\`bash
+./neodax -f -I ./arm64_binary
+\`\`\`
+
+### Extract all Unicode strings
+
+\`\`\`bash
+./neodax -u -n ./binary | grep -v "^$\\|Encoding\\|─\\|═\\|Address"
+\`\`\`
+
+### Full analysis, save to file, no color
+
+\`\`\`bash
+./neodax -X -n ./binary > report.txt 2>&1
+\`\`\`
+
+### Save analysis snapshot and reload later
+
+\`\`\`bash
+./neodax -x -o snap.daxc ./binary
+./neodax -c snap.daxc > annotated.S
+\`\`\`
+
+### Analyze a specific address range
+
+\`\`\`bash
+./neodax -A 0x4000 -E 0x4200 -g ./binary
+\`\`\`
+
+---
+
+## JavaScript API Recipes
+
+### Batch analyze multiple binaries
+
+\`\`\`js
+const neodax = require('neodax');
+const files = ['./a.out', './libc.so', './target'];
+
+files.forEach(f => {
+    neodax.withBinary(f, bin => {
+        console.log(f, bin.sha256, bin.functions().length, 'funcs');
+    });
+});
+\`\`\`
+
+### Entropy-based packer detection pipeline
+
+\`\`\`js
+neodax.withBinary('./unknown', bin => {
+    const sections = bin.entropy();
+    const packed = sections.filter(s => s.maxEntropy >= 7.0);
+    if (packed.length > 0) {
+        console.log('PACKED sections:', packed.map(s => s.name));
+    }
+});
+\`\`\`
+
+### Emulate with custom register state
+
+\`\`\`js
+neodax.withBinary('./arm64_binary', bin => {
+    // x0=1337, x1=42
+    const trace = bin.emulate(0, { '0': 1337n, '1': 42n });
+    console.log(trace);
+});
+\`\`\``,
+
+  CLI_REFERENCE: `# CLI Reference
+
+Complete reference for the \`neodax\` command-line tool.
+
+---
+
+## Synopsis
+
+\`\`\`
+neodax [OPTIONS] <binary>
+neodax [OPTIONS] -c <file.daxc>
+\`\`\`
+
+---
+
+## Output Control
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| \`-a\` | Show hex bytes alongside each instruction | \`neodax -a ./binary\` |
+| \`-n\` | No color output (plain text) | \`neodax -n ./binary \\| less\` |
+| \`-v\` | Verbose — extra detail in analysis output | \`neodax -v -C ./binary\` |
+| \`-h\` | Show help and exit | \`neodax -h\` |
+
+## Section Selection
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| \`-s <n>\` | Disassemble a specific section (default: \`.text\`) | \`neodax -s .plt ./binary\` |
+| \`-S\` | Disassemble all executable sections | \`neodax -S ./binary\` |
+| \`-l\` | List all sections with metadata | \`neodax -l ./binary\` |
+| \`-A <addr>\` | Start address in hex | \`neodax -A 0x4010 ./binary\` |
+| \`-E <addr>\` | End address in hex | \`neodax -A 0x4010 -E 0x4100 ./binary\` |
+
+## Static Analysis
+
+| Flag | Description |
+|------|-------------|
+| \`-y\` | Resolve symbols from symbol table |
+| \`-d\` | Demangle C++ Itanium ABI names |
+| \`-f\` | Detect function boundaries |
+| \`-g\` | Instruction group coloring (call/branch/ret/stack/syscall/nop) |
+| \`-r\` | Cross-reference annotations |
+| \`-t\` | Inline string annotations from \`.rodata\` |
+| \`-C\` | Build and print control flow graphs |
+| \`-L\` | Loop detection via dominator analysis |
+| \`-G\` | Call graph — who calls whom |
+| \`-W\` | Switch/jump table detection |
+| \`-u\` | Unicode string scanner (UTF-8, UTF-16LE, UTF-16BE) |
+
+## Advanced Analysis
+
+| Flag | Description | Platform |
+|------|-------------|----------|
+| \`-P\` | Symbolic execution | ARM64, x86-64 |
+| \`-Q\` | SSA lifting (Static Single Assignment) | ARM64 |
+| \`-D\` | Decompile to pseudo-C | ARM64 |
+| \`-I\` | Emulate function with concrete values | ARM64 |
+| \`-e\` | Entropy analysis (Shannon sliding window) | All |
+| \`-R\` | Recursive descent disassembly | ARM64, x86-64 |
+| \`-V\` | Instruction validity filter | ARM64, x86-64 |
+
+## Batch Flags
+
+| Flag | Includes |
+|------|----------|
+| \`-x\` | \`-y -d -f -g -r -t -C -L -G -W -u\` |
+| \`-X\` | Everything in \`-x\` plus \`-P -Q -D -I -e -R -V\` |
+
+## Snapshot
+
+| Flag | Description |
+|------|-------------|
+| \`-o <file>\` | Save full analysis snapshot to \`.daxc\` |
+| \`-c\` | Convert \`.daxc\` to annotated \`.S\` assembly |`,
+
+  API: `# C API Reference
+
+Complete reference for the NeoDAX C API — all public functions declared in \`include/dax.h\`.
+
+---
+
+## Core Types
+
+### \`dax_binary_t\`
+
+Central struct holding all parsed and analyzed state.
+
+\`\`\`c
+typedef struct {
+    uint8_t      *data;               // Raw file bytes
+    size_t        size;               // File size in bytes
+    char          filepath[512];      // Resolved absolute path
+
+    dax_fmt_t     fmt;                // Binary format (ELF64, PE32, etc.)
+    dax_arch_t    arch;               // Architecture
+    dax_os_t      os;                 // OS/ABI
+
+    uint64_t      entry;              // Entry point virtual address
+    uint64_t      base;               // Image base address
+
+    uint64_t      image_size;         // Total virtual image size
+    uint64_t      code_size;          // Total size of executable sections
+    uint64_t      data_size;          // Total size of data sections
+    uint32_t      total_insns;        // Instruction count after disassembly
+
+    char          sha256[65];         // Hex SHA-256 digest of the file
+    char          build_id[64];       // GNU Build-ID hex string (ELF)
+
+    int           is_pie;             // Position-independent executable
+    int           is_stripped;        // No symbol table
+    int           has_debug;          // DWARF debug sections present
+
+    dax_section_t sections[DAX_MAX_SECTIONS];
+    int           nsections;
+
+    dax_symbol_t  *symbols;
+    int            nsymbols;
+
+    dax_xref_t    *xrefs;
+    int            nxrefs;
+
+    dax_func_t    *functions;
+    int            nfunctions;
+} dax_binary_t;
+\`\`\`
+
+---
+
+## Binary Loader
+
+\`\`\`c
+dax_binary_t *dax_load(const char *path);
+void          dax_free(dax_binary_t *bin);
+\`\`\`
+
+**\`dax_load\`** — mmap the file, detect format, parse headers, extract sections and symbols. Returns \`NULL\` on failure.
+
+**\`dax_free\`** — unmap file, free all heap-allocated arrays.
+
+---
+
+## Disassembly
+
+\`\`\`c
+int dax_disassemble(dax_binary_t *bin, const char *section_name, 
+                    dax_opts_t opts);
+int dax_disassemble_range(dax_binary_t *bin, uint64_t start, 
+                          uint64_t end, dax_opts_t opts);
+\`\`\`
+
+Decodes instructions into \`bin->blocks\` (for CFG) and \`bin->comments\` (for inline annotations).
+
+---
+
+## Symbols
+
+\`\`\`c
+int dax_load_symbols(dax_binary_t *bin);
+const char *dax_symbol_at(dax_binary_t *bin, uint64_t addr);
+\`\`\`
+
+Populates \`bin->symbols\`. Supports ELF \`.symtab\`/\`.dynsym\`, PE exports, Mach-O \`nlist_64\`.
+
+---
+
+## Analysis & Xrefs
+
+\`\`\`c
+int dax_xref_build(dax_binary_t *bin);
+int dax_detect_functions(dax_binary_t *bin);
+int dax_scan_strings(dax_binary_t *bin);
+int dax_scan_unicode(dax_binary_t *bin);
+\`\`\`
+
+---
+
+## CFG
+
+\`\`\`c
+int dax_cfg_build(dax_binary_t *bin, int func_idx);
+int dax_cfg_build_all(dax_binary_t *bin);
+void dax_cfg_print(dax_binary_t *bin, int func_idx);
+\`\`\`
+
+Two-pass CFG builder: pre-registers all branch targets, then walks instructions skipping dead bytes.
+
+---
+
+## Advanced Analysis
+
+\`\`\`c
+int  dax_entropy_scan(dax_binary_t *bin);
+int  dax_rda_section(dax_binary_t *bin, const char *section);
+int  dax_ivf_section(dax_binary_t *bin, const char *section);
+void dax_symexec_func(dax_binary_t *bin, int func_idx);
+void dax_ssa_lift_func(dax_binary_t *bin, int func_idx);
+void dax_decompile_func(dax_binary_t *bin, int func_idx);
+void dax_emulate_func(dax_binary_t *bin, int func_idx, uint64_t *regs);
+\`\`\`
+
+---
+
+## Snapshot (.daxc)
+
+\`\`\`c
+int dax_snapshot_save(dax_binary_t *bin, const char *path);
+int dax_snapshot_load(const char *path, dax_binary_t *out);
+int dax_snapshot_to_asm(const char *daxc_path);
+\`\`\`
+
+---
+
+## Constants
+
+\`\`\`c
+// Architectures
+DAX_ARCH_X86_64    DAX_ARCH_ARM64    DAX_ARCH_RISCV64    DAX_ARCH_UNKNOWN
+
+// Formats
+DAX_FMT_ELF64    DAX_FMT_ELF32    DAX_FMT_PE64    DAX_FMT_PE32
+DAX_FMT_MACHO64  DAX_FMT_FAT      DAX_FMT_RAW
+
+// OS/ABI
+DAX_OS_LINUX    DAX_OS_WINDOWS    DAX_OS_MACOS    DAX_OS_BSD
+DAX_OS_ANDROID  DAX_OS_UNKNOWN
+\`\`\``,
+
+  BINARY_FORMATS: `# Binary Format Support
+
+Detailed reference for all binary formats supported by NeoDAX.
+
+---
+
+## Format Detection
+
+NeoDAX detects format by reading the first 4 bytes as a little-endian \`uint32_t\`:
+
+| Magic value | Bytes on disk | Format |
+|-------------|--------------|--------|
+| \`0x464C457F\` | \`7F 45 4C 46\` | ELF (any) |
+| \`0x00005A4D\` | \`4D 5A xx xx\` | PE (DOS MZ header) |
+| \`0xFEEDFACF\` | \`CF FA ED FE\` | Mach-O 64-bit LE |
+| \`0xFEEDFACE\` | \`CE FA ED FE\` | Mach-O 32-bit LE |
+| \`0xBEBAFECA\` | \`CA FE BA BE\` | FAT/Universal |
+| *(anything else)* | — | Raw binary |
+
+---
+
+## ELF
+
+**Parser:** \`src/loader.c\` → \`dax_parse_elf()\`
+
+| Variant | Architecture | Status |
+|---------|-------------|--------|
+| ELF64 LE | x86-64, AArch64, RISC-V | ✅ Full |
+| ELF32 LE | x86, ARM, RISC-V | ✅ Full |
+| ELF64 BE | SPARC, MIPS64 | ⚠ Parsed (no decoder) |
+| ELF32 BE | MIPS32, PowerPC | ⚠ Parsed (no decoder) |
+
+Extracted: class, endianness, OS/ABI, architecture, entry point, section headers, symbol tables (\`.symtab\` + \`.dynsym\`), SHA-256, GNU Build-ID, PIE detection, strip detection, debug info detection.
+
+---
+
+## PE / COFF
+
+**Parser:** \`src/loader.c\` → \`dax_parse_pe()\`
+
+| Variant | Architecture | Status |
+|---------|-------------|--------|
+| PE64+ (x86-64) | x86-64 | ✅ Full |
+| PE64+ (ARM64) | AArch64 | ✅ Full |
+| PE32 (x86) | x86 | ✅ Full |
+
+Extracted: machine type, optional header (ImageBase, AddressOfEntryPoint), section table, export directory for symbol names.
+
+---
+
+## Mach-O
+
+**Parser:** \`src/macho.c\` → \`dax_parse_macho()\`
+
+| Variant | Status |
+|---------|--------|
+| Mach-O 64-bit | ✅ Full |
+| Mach-O 32-bit | ✅ Parsed |
+| FAT/Universal | ✅ Full (ARM64 slice preferred) |
+
+Segments and sections mapped: \`__TEXT,__text\` → \`.text\`, \`__DATA,__data\` → \`.data\`, etc.
+
+---
+
+## Raw
+
+Any file that doesn't match a known magic is treated as raw binary. Architecture must be inferred from context. Useful for shellcode, firmware blobs, and embedded code snippets.`,
+
+  FORMAT_DAXC: `# .daxc Snapshot Format
+
+The \`.daxc\` (DAX Compiled) format is NeoDAX's binary snapshot format for saving and reloading analysis state.
+
+---
+
+## Overview
+
+\`\`\`bash
+# Save analysis snapshot
+./neodax -x -o snapshot.daxc ./binary
+
+# Convert snapshot to annotated assembly
+./neodax -c snapshot.daxc > annotated.S
+\`\`\`
+
+---
+
+## File Structure
+
+\`\`\`
+[Header]
+  magic: "DAXC" (4 bytes)
+  version: uint32
+  arch: uint32
+  fmt: uint32
+  entry: uint64
+  nsections: uint32
+  nsymbols: uint32
+  nfunctions: uint32
+  nblocks: uint32
+  nxrefs: uint32
+
+[Sections table]
+  foreach section:
+    name[64]: char
+    vaddr: uint64
+    size: uint64
+    flags: uint32
+    raw_data: uint8[size]
+
+[Symbols table]
+  foreach symbol:
+    name[128]: char
+    addr: uint64
+    size: uint64
+    type: uint32
+
+[Functions table]
+  foreach function:
+    name[128]: char
+    addr: uint64
+    size: uint64
+    nblocks: uint32
+
+[CFG Blocks]
+  foreach block:
+    addr: uint64
+    size: uint32
+    ninsns: uint32
+    nedges: uint32
+    edges[MAX_EDGES]: uint64
+
+[Cross-references]
+  foreach xref:
+    from: uint64
+    to: uint64
+    type: uint32  // call | branch
+\`\`\`
+
+---
+
+## Use Cases
+
+- **Archival** — save analysis results from systems where NeoDAX isn't installed permanently
+- **Offline analysis** — capture state on an Android device, analyze later on desktop
+- **CI pipelines** — store snapshots as build artifacts for regression comparison
+- **Collaboration** — share analysis state without distributing the original binary`,
+
+  ARCHITECTURE: `# NeoDAX Architecture
+
+Internal design of NeoDAX — module interactions, data flows, and design decisions.
+
+---
+
+## Overview
+
+NeoDAX is structured as a **layered analysis pipeline**:
+
+\`\`\`
+Input: ELF / PE / Mach-O / Raw binary file
+        │
+┌───────▼──────────┐
+│  loader.c         │  Binary Parser
+│  ELF32/64 + PE + Mach-O + Raw
+│  Sections, metadata, SHA-256
+└───────┬──────────┘
+        │  dax_binary_t
+   ┌────┼────────────────┐
+   │    │                │
+symbols  disasm.c      analysis.c
+symtab   x86/arm64/    xrefs / groups
+dynsym   riscv decode  string refs
+PE exp   └────┬────┘
+              │
+         ┌────▼────┐
+         │  cfg.c  │  Two-pass CFG builder
+         └────┬────┘
+    ┌─────────┼──────────────────┐
+    │         │                  │
+loops.c  callgraph.c      Advanced:
+dominator  who→whom       symexec.c
+analysis               decomp.c
+                       emulate.c
+                            │
+                       main.c  CLI output
+                            │
+                       daxc.c  .daxc snapshot
+\`\`\`
+
+---
+
+## Module Descriptions
+
+### \`loader.c\`
+Parses ELF, PE, Mach-O, and raw files. Populates the \`dax_binary_t\` struct with sections, metadata, and raw bytes. Zero dynamic allocation except for symbol arrays.
+
+### \`disasm.c\`
+Dispatch layer: calls architecture-specific decoders (\`x86_decode.c\`, \`arm64_decode.c\`, \`riscv_decode.c\`). Handles inline annotation injection (strings, xrefs, symbols).
+
+### \`analysis.c\`
+Single-pass xref builder. Scans instructions for call/branch targets. Detects function prologues. Resolves string references from \`.rodata\`.
+
+### \`cfg.c\`
+Two-pass CFG builder. Pass 1 pre-registers all jump targets. Pass 2 walks instructions, skipping dead bytes between pre-registered block boundaries.
+
+### \`symexec.c\`
+Abstract interpretation with a symbolic expression pool (1024 nodes). Tracks register state as symbolic expressions through a function.
+
+### \`decomp.c\`
+SSA lifting (\`-Q\`) and pseudo-C decompiler (\`-D\`). ARM64 only. Lifts to versioned register assignments, then renders as C-like output.
+
+### \`emulate.c\`
+Concrete ARM64 emulator. 32 × 64-bit registers, 64 memory pages (4KB each), CPSR flags. ROM fallback for unmapped reads. Hard limit: 8192 steps per call.
+
+### \`entropy.c\`
+Shannon entropy sliding window (256B window, 64B step). Also contains recursive descent disassembly (RDA) and instruction validity filter (IVF).
+
+---
+
+## Design Principles
+
+- **Zero external dependencies** — runs anywhere a C99 compiler exists
+- **Single allocation pattern** — \`dax_binary_t\` is the only persistent allocation; analysis results are heap arrays hung off it
+- **Layered pipeline** — each module operates on \`dax_binary_t\` in sequence; no module calls back into a higher layer
+- **No global state** — thread-safe for analyzing multiple binaries simultaneously with separate \`dax_binary_t\` instances`,
+
+  ALGORITHMS: `# Analysis Algorithms
+
+Technical explanation of the algorithms used in NeoDAX's analysis engine.
+
+---
+
+## CFG Builder — Two-Pass Algorithm
+
+**File:** \`src/cfg.c\`
+
+### The Problem with Single-Pass CFG
+
+A naive single-pass CFG builder decodes instructions linearly. When it hits an unconditional branch, it continues decoding the bytes immediately following. If those bytes are intentional dead code (jump trick, opaque predicate padding), the decoder emits garbage instructions and creates phantom blocks.
+
+### NeoDAX Two-Pass Solution
+
+**Pass 1 — Pre-registration:**
+Scan the entire function body. For every branch instruction with a known target address, register that target as a block boundary *before* the main analysis.
+
+**Pass 2 — Main build:**
+Walk instructions sequentially. At each unconditional branch:
+1. Add a jump edge to the target block
+2. Scan forward byte-by-byte until a **pre-registered block boundary** is found
+3. Resume decoding from that boundary — dead bytes are silently skipped
+
+**Result for jump trick:**
+\`\`\`asm
+  b  2f              ; unconditional jump
+  .byte 0xde,0xad,0xbe,0xef   ; dead bytes — SKIPPED
+  .byte 0xff,0xff,0xff,0xff   ; dead bytes — SKIPPED
+2:
+  add  w0, w0, #7   ; correctly identified as next block
+\`\`\`
+
+---
+
+## Shannon Entropy Analysis
+
+**File:** \`src/entropy.c\` · Function: \`dax_entropy_scan()\`
+
+\`\`\`
+H = -∑ pᵢ × log₂(pᵢ)
+\`\`\`
+
+**Parameters:**
+- Window size: 256 bytes
+- Step size: 64 bytes (75% overlap)
+- High threshold: ≥ 6.8 bits/byte
+- Packed/encrypted threshold: ≥ 7.0 bits/byte
+
+**Entropy interpretation:**
+
+| Range | Typical Content |
+|-------|----------------|
+| 0.0 – 1.0 | Mostly null bytes (BSS, alignment padding) |
+| 1.0 – 4.0 | Text strings, structured data |
+| 4.0 – 5.5 | Code (x86-64 typically 5.0–5.8) |
+| 5.5 – 6.8 | Mixed data, ARM64 code |
+| 6.8 – 7.0 | High density — compressed tables |
+| 7.0 – 8.0 | Encrypted, compressed, or packed content |
+
+---
+
+## Recursive Descent Disassembly
+
+**File:** \`src/entropy.c\` · Function: \`dax_rda_section()\`
+
+BFS from the section entry point. Maintains a visited bitmap (1 bit per address). At each instruction:
+- If conditional branch: enqueue both fall-through and target
+- If unconditional branch: enqueue only target, mark current path as ended
+- If \`ret\`: end current path
+
+Dead bytes appear as \`[DEAD: 0xstart .. 0xend]\` in output — regions reachable by linear scan but not by RDA.
+
+---
+
+## Instruction Validity Filter (IVF)
+
+**File:** \`src/entropy.c\` · Function: \`dax_ivf_section()\`
+
+Classifies each decoded instruction as:
+- **VALID** — normal instruction
+- **INVALID** — undefined encoding
+- **PRIV** — privileged instruction (ring 0 only)
+- **DEAD** — after unconditional branch, before next pre-registered block
+- **NOP-RUN** — 8+ consecutive NOPs (alignment or NOP sled)
+- **INT3-RUN** — 3+ consecutive INT3 (anti-debug spray)
+
+---
+
+## Loop Detection
+
+**File:** \`src/loops.c\`
+
+Uses dominator tree analysis on the CFG:
+1. Compute immediate dominators via iterative dataflow (Cooper et al.)
+2. A back-edge exists where a CFG edge \`A → B\` and B dominates A
+3. Each back-edge identifies a natural loop: the loop body is all nodes that can reach A without going through B
+
+---
+
+## Symbolic Execution
+
+**File:** \`src/symexec.c\`
+
+Abstract interpretation with expression trees:
+- Each register holds a symbolic expression (constant, register, or binary op)
+- Operations create new expression nodes in a pool (max 1024)
+- At branches: both paths are explored up to depth limit
+- Output: possible register values at each instruction`,
+
+  FUNCTION_DETECTION: `# Function Detection
+
+How NeoDAX identifies function boundaries in binary executables.
+
+---
+
+## Detection Strategy
+
+NeoDAX uses a **hybrid approach**: symbol-guided detection first, then heuristic prologue detection.
+
+---
+
+## Symbol-Guided Detection
+
+When \`-y\` is active and the binary has a symbol table:
+
+**ELF:** Functions from \`.symtab\` (\`STT_FUNC\`) and \`.dynsym\`. Size comes from \`st_size\` field.
+
+**PE:** Functions from the export directory. Size estimated by distance to next export or section end.
+
+**Mach-O:** Functions from \`LC_SYMTAB\` \`nlist_64\` entries. Leading underscore stripped (\`_foo\` → \`foo\`).
+
+---
+
+## Heuristic Prologue Detection
+
+For stripped binaries (no symbol table), or when \`-f\` is used without \`-y\`:
+
+### x86-64 Prologues
+
+\`\`\`asm
+push  rbp              ; classic frame setup
+mov   rbp, rsp
+sub   rsp, N           ; stack allocation
+\`\`\`
+
+Also detects:
+- \`endbr64\` — Intel CET indirect branch target marker
+- \`push r15/r14/r13...\` — callee-save register chains
+- Known library wrapper patterns
+
+### ARM64 Prologues
+
+\`\`\`asm
+stp   x29, x30, [sp, #-N]!   ; save frame + link register
+mov   x29, sp                  ; set frame pointer
+sub   sp, sp, #N              ; stack allocation (macOS stripped binaries)
+\`\`\`
+
+---
+
+## Function Size Estimation
+
+For symbol-guided functions: exact from symbol table.
+
+For heuristic functions: from prologue to next detected prologue (or section end).
+
+---
+
+## Limitations
+
+- **Obfuscated prologues** — deliberately altered to evade heuristics → use \`-P\` symbolic execution or \`-R\` recursive descent as fallback
+- **Tail-call optimized** functions may share epilogues
+- **RISC-V** function detection is symbol-guided only (no heuristic prologue detector yet)`,
+
+  DECOMPILER: `# Decompiler & SSA Lifting
+
+How NeoDAX lifts binary code to SSA form and decompiles to pseudo-C.
+
+---
+
+## Pipeline
+
+\`\`\`
+ARM64 instructions
+      ↓
+  ssa_lift_arm64_insn()
+      ↓
+  SSA statement list  (ssa_stmt_t[])
+      ↓
+  dax_ssa_lift_func()  →  prints SSA form (-Q)
+      ↓
+  lift_to_ir_arm64()
+      ↓
+  IR node list  (ir_node_t[])
+      ↓
+  dax_decompile_func()  →  prints pseudo-C (-D)
+\`\`\`
+
+---
+
+## SSA Form
+
+Static Single Assignment form guarantees each variable is written exactly once. NeoDAX implements simplified SSA — no phi-node insertion, but each register write creates a new versioned variable.
+
+**Naming:** \`r<N>_<version>\` where N is register number and version increments on each write.
+
+**Example — ARM64 input:**
+
+\`\`\`asm
+mov  w8, w0        // copy arg
+b    target        // unconditional jump
+target:
+add  w0, w0, #7   // compute
+movz w9, #0x55    // load constant
+eor  w0, w0, w9   // xor
+ret
+\`\`\`
+
+**SSA output (-Q):**
+
+\`\`\`
+0x790  r8_1  = r0_0
+0x794  branch → 0x7a4
+0x7a4  r0_2  = r0_0 + 0x7
+0x7a8  r9_1  = 0x55
+0x7ac  r0_3  = r0_2 ^ r9_1
+0x7b0  ret r0_3
+\`\`\`
+
+---
+
+## Pseudo-C Decompiler
+
+**Decompiler output (-D):**
+
+\`\`\`c
+int32_t tricky(int arg0) {
+  r8 = arg0;
+  r0 = arg0 + 0x7;
+  r9 = 0x55;
+  r0 = r0 ^ r9;
+  return r0;
+}
+\`\`\`
+
+---
+
+## JavaScript API
+
+\`\`\`js
+neodax.withBinary('./arm64_binary', bin => {
+    // SSA for function 0
+    console.log(bin.ssa(0));
+
+    // Pseudo-C for function 0
+    console.log(bin.decompile(0));
+});
+\`\`\`
+
+---
+
+## Limitations
+
+- **ARM64 only** — SSA and decompiler are not implemented for x86-64 or RISC-V
+- **No phi-nodes** — loops and if-else may produce redundant variable versions
+- **Type inference** — limited to register width (w-registers → int32, x-registers → int64)
+- **SIMD/FP** — NEON and floating-point instructions produce raw register assignments`,
+
+  EMULATOR: `# ARM64 Emulator
+
+Concrete execution engine for ARM64 binaries.
+
+---
+
+## Overview
+
+NeoDAX includes a concrete emulator that steps through ARM64 instructions with real register values and a simulated memory model. Unlike symbolic execution, the emulator requires known initial inputs and produces exact outputs.
+
+---
+
+## Memory Model
+
+| Component | Details |
+|-----------|---------|
+| Register file | 32 × 64-bit general purpose (\`x0\`–\`x30\`, \`xzr\`) |
+| Stack pointer | Separate \`sp\`, initialized at \`0x7fff0000 + 0x10000 - 0x80\` |
+| CPSR flags | Z (zero), N (negative), C (carry), V (overflow) |
+| Memory | 64 × 4 KB pages, allocated on first write |
+| ROM fallback | \`ldr\` from unmapped addresses falls back to binary section data |
+| Max steps | 8192 instructions per call |
+
+---
+
+## CLI Usage
+
+\`\`\`bash
+# Emulate all functions (up to first 4) with default registers {0,1,2,3,4,5,6,7}
+./neodax -f -I ./arm64_binary
+\`\`\`
+
+---
+
+## Trace Format
+
+\`\`\`
+  Emulation: tricky
+
+  Initial registers: x0=0x539 x1=0x1 x2=0x0 x3=0x3
+
+  0x000000000000078c  mov    w8, w0        → x8=0x539
+  0x0000000000000790  b      0x7a4         (branch taken)
+  0x00000000000007a4  add    w0, w0, #0x7  → x0=0x540
+  0x00000000000007a8  movz   w9, #0x55     → x9=0x55
+  0x00000000000007ac  eor    w0, w0, w9    → x0=0x515
+
+  Emulation complete: 5 steps
+  Halted: ret w0=0x515
+\`\`\`
+
+---
+
+## JavaScript API
+
+\`\`\`js
+neodax.withBinary('./arm64_binary', bin => {
+    // Emulate function 0 with x0=1337
+    const trace = bin.emulate(0, { '0': 1337n });
+    console.log(trace);
+});
+\`\`\`
+
+\`initRegs\` keys are register index strings (\`'0'\`–\`'7'\`), values are \`bigint\` or \`number\`.
+
+---
+
+## Supported Instructions
+
+| Category | Instructions |
+|----------|-------------|
+| Data move | \`mov\`, \`movz\`, \`movk\`, \`movn\`, \`ldr\`, \`str\`, \`ldp\`, \`stp\` |
+| Arithmetic | \`add\`, \`sub\`, \`mul\`, \`sdiv\`, \`udiv\`, \`neg\` |
+| Logical | \`and\`, \`orr\`, \`eor\`, \`bic\`, \`orn\`, \`lsl\`, \`lsr\`, \`asr\` |
+| Comparison | \`cmp\`, \`cmn\`, \`tst\` |
+| Branches | \`b\`, \`bl\`, \`blr\`, \`br\`, \`cbz\`, \`cbnz\`, \`b.cond\` |
+| System | \`ret\`, \`nop\`, \`svc\` |`,
+
+  OBFUSCATION: `# Analyzing Obfuscated Binaries
+
+Practical guide for using NeoDAX against packed, obfuscated, and anti-analysis binaries.
+
+---
+
+## Detecting Obfuscation
+
+### Step 1 — Entropy scan
+
+\`\`\`bash
+./neodax -e ./binary
+\`\`\`
+
+| Output | Interpretation |
+|--------|---------------|
+| \`.text\` entropy ≥ 7.0 | Packed or encrypted — analyze after unpacking |
+| \`.data\` entropy ≥ 7.0 | Encrypted payload in data section |
+| \`.text\` entropy 5.5–6.8 | Normal for ARM64 |
+| Multiple sections PACKED | Full packer (UPX, custom) |
+
+### Step 2 — Instruction validity filter
+
+\`\`\`bash
+./neodax -V ./binary
+\`\`\`
+
+| Finding | Meaning |
+|---------|---------|
+| \`INVALID\` at many addresses | Jump-trick dead bytes or truly invalid code |
+| \`PRIV\` (privileged in userspace) | Anti-debug trick |
+| \`DEAD\` (bytes after unconditional branch) | Jump tricks — intentional dead bytes |
+| \`NOP-RUN\` (≥ 8 consecutive NOPs) | Alignment padding or NOP sled |
+| \`INT3-RUN\` (≥ 3 consecutive INT3) | Anti-debugging breakpoint spray |
+
+### Step 3 — Recursive descent
+
+\`\`\`bash
+./neodax -R ./binary
+\`\`\`
+
+Shows \`[DEAD: 0xstart .. 0xend]\` regions. High dead-byte percentage indicates heavy obfuscation.
+
+### Step 4 — CFG analysis
+
+\`\`\`bash
+./neodax -C ./binary
+\`\`\`
+
+Unusually large number of small blocks connected by unconditional branches often indicates **control-flow flattening**.
+
+---
+
+## Common Obfuscation Patterns
+
+### Jump Tricks
+
+Dead bytes inserted after unconditional branches to mislead linear-scan disassemblers.
+
+**NeoDAX response:** Two-pass CFG pre-registers all jump targets — dead bytes are transparently skipped.
+
+### Opaque Predicates
+
+Branch conditions that always evaluate the same way but look data-dependent.
+
+**NeoDAX response:** Symbolic execution (\`-P\`) can determine branch outcomes symbolically.
+
+### Control-Flow Flattening
+
+All blocks dispatched through a central switch/state variable.
+
+**NeoDAX response:** \`-W\` switch table detection identifies the dispatcher; \`-C\` shows the flat structure.
+
+### String Encryption
+
+Strings decrypted at runtime, absent from \`.rodata\`.
+
+**NeoDAX response:** Unicode scanner (\`-u\`) can find encoded strings; emulator (\`-I\`) can capture decrypted output.`,
+
+  UNICODE_DETECTION: `# Unicode Detection
+
+Design and operation of the NeoDAX Unicode string scanner.
+
+---
+
+## Overview
+
+The Unicode scanner (\`-u\`) finds UTF-8, UTF-16LE, and UTF-16BE strings in binary sections, with false-positive filtering.
+
+**CLI:** \`./neodax -u ./binary\`  
+**JS API:** \`bin.ustrings()\`
+
+---
+
+## Encoding Detection
+
+### UTF-8
+
+Detects valid multi-byte UTF-8 sequences using the standard byte-range rules:
+- 1-byte: \`0x00\`–\`0x7F\` (ASCII subset)
+- 2-byte: \`0xC2\`–\`0xDF\` followed by \`0x80\`–\`0xBF\`
+- 3-byte: \`0xE0\`–\`0xEF\` followed by two continuation bytes
+- 4-byte: \`0xF0\`–\`0xF7\` followed by three continuation bytes
+
+Minimum length: 4 codepoints.
+
+### UTF-16LE / UTF-16BE
+
+Scans for alternating pattern: character byte + null byte (LE) or null byte + character byte (BE). Validates that the non-null byte falls in a printable Unicode range.
+
+Minimum length: 4 UTF-16 codepoints (8 bytes).
+
+---
+
+## False-Positive Filtering
+
+The scanner rejects sequences that are likely code or structured data:
+
+| Filter | Reason |
+|--------|--------|
+| All-ASCII with no extended chars | Could be code bytes |
+| Entropy > 4.5 bits/byte | Too random for natural language |
+| Runs of null bytes > 30% | Likely padding |
+| Repeating 2-byte pattern | Likely instruction encodings |
+| Printable ratio < 70% | Too many control characters |
+
+---
+
+## Output Format
+
+\`\`\`
+Unicode String Scanner
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Address          Encoding    String
+─────────────────────────────────
+0x00004200       UTF-16LE    Hello, World!
+0x00004230       UTF-8       /proc/self/maps
+0x0000428c       UTF-16BE    KERNEL32.DLL
+\`\`\`
+
+---
+
+## JavaScript API
+
+\`\`\`js
+neodax.withBinary('./binary', bin => {
+    const strings = bin.ustrings();
+    strings.forEach(s => {
+        console.log(s.addr.toString(16), s.encoding, s.value);
+    });
+});
+\`\`\``,
+
+  MACHO_SUPPORT: `# Mach-O Support
+
+NeoDAX fully supports macOS and iOS binary formats.
+
+---
+
+## Supported Variants
+
+| Format | Status |
+|--------|--------|
+| Mach-O 64-bit LE (ARM64, x86-64) | ✅ Full |
+| Mach-O 32-bit LE | ✅ Parsed |
+| FAT/Universal binary | ✅ Full |
+| Big-endian Mach-O | ✅ Parsed |
+
+---
+
+## FAT Binary Handling
+
+For universal (FAT) binaries containing multiple architectures:
+1. ARM64 slice is selected first (primary target)
+2. Falls back to x86-64 if no ARM64 slice
+3. Falls back to first available slice
+
+\`\`\`bash
+./neodax -x ./universal_binary   # automatically selects ARM64
+\`\`\`
+
+---
+
+## Load Commands
+
+NeoDAX processes:
+
+| Load Command | Purpose |
+|-------------|---------|
+| \`LC_SEGMENT_64\` | Maps sections with correct vaddr/offset |
+| \`LC_MAIN\` | Entry point (\`main_offset\` from \`LC_MAIN\`) |
+| \`LC_SYMTAB\` | Symbol table: \`nlist_64\` entries, string table |
+| \`LC_DYSYMTAB\` | Dynamic symbol indices |
+
+---
+
+## Section Mapping
+
+Mach-O sections use \`(segment, section)\` pairs. NeoDAX normalizes these:
+
+| Mach-O | NeoDAX name |
+|--------|------------|
+| \`__TEXT,__text\` | \`.text\` |
+| \`__DATA,__data\` | \`.data\` |
+| \`__TEXT,__const\` | \`.rodata\` |
+| \`__DATA,__bss\` | \`.bss\` |
+| \`__TEXT,__stubs\` | \`.plt\` |
+| \`__LINKEDIT\` | (metadata, not analyzed) |
+
+---
+
+## Symbol Convention
+
+Mach-O symbols have a leading underscore by convention (\`_foo\`). NeoDAX strips this automatically — output shows \`foo\`, not \`_foo\`.
+
+---
+
+## macOS Assembly Stubs
+
+NeoDAX includes Mach-O-compatible assembly stubs:
+- \`arch/arm64_macos.S\` — ARM64 macOS (uses \`@PAGE\`/\`@PAGEOFF\`, \`_symbol\` names)
+- \`arch/x86_64_macos.S\` — x86-64 macOS (syscall \`0x2000004\`)
+
+Both are selected automatically by the Makefile based on the host architecture.`,
+
+  PERFORMANCE: `# Performance Guide
+
+---
+
+## Typical Analysis Times
+
+Measured on mid-range ARM64 Android (Termux), analyzing \`/bin/ls\` (~200 KB ELF, ~160 functions):
+
+| Analysis | Flag | Time |
+|---|---|---|
+| Disassembly only | *(default)* | ~3 ms |
+| Standard full | \`-x\` | ~12 ms |
+| + Entropy | \`-x -e\` | ~15 ms |
+| + Recursive descent | \`-x -R\` | ~25 ms |
+| + Symbolic execution | \`-x -P\` | ~20 ms |
+| + Decompile | \`-x -D\` | ~22 ms |
+| + Emulate | \`-x -I\` | ~18 ms |
+| Full everything | \`-X\` | ~40 ms |
+
+For a 5 MB binary (~2000 functions): \`-X\` typically completes in 200–400 ms.
+
+---
+
+## Complexity by Module
+
+| Module | Complexity | Notes |
+|--------|-----------|-------|
+| Loader | O(sections + symbols) | I/O bound |
+| Xref builder | O(instructions) | Single pass |
+| CFG builder | O(instructions × 2) | Two-pass |
+| Entropy | O(sections × size / step) | 4M byte ops per 1MB |
+| Recursive descent | O(reachable insns × queue) | BFS, each insn once |
+| Symbolic execution | O(insns × pool_depth) | Pool capped at 1024 |
+| Emulator | O(steps) | Hard cap: 8192 steps |
+
+---
+
+## JS API Performance
+
+N-API boundary adds negligible overhead. The main cost is always the C-side analysis.
+
+**Caching for repeated analysis:**
+
+\`\`\`js
+const cache = new Map();
+
+function getCached(filePath) {
+    const bin = neodax.load(filePath);
+    const key = bin.sha256;
+    if (cache.has(key)) { bin.close(); return cache.get(key); }
+    cache.set(key, bin);
+    return bin;
+}
+\`\`\`
+
+---
+
+## Memory Usage
+
+| Component | Approximate |
+|---|---|
+| Base \`dax_binary_t\` struct | ~8 KB |
+| Raw file data | = file size |
+| Symbol array | ~200 B × nsymbols |
+| Block array | ~128 B × nblocks |
+| Emulator pages | 64 × 4 KB = 256 KB max |`,
+
+  FUZZING: `# Fuzzing Guide
+
+How to fuzz-test NeoDAX with AFL++, libFuzzer, and ASAN.
+
+---
+
+## Overview
+
+NeoDAX parses untrusted binary files. All parser code (\`loader.c\`, \`x86_decode.c\`, \`arm64_decode.c\`, \`riscv_decode.c\`, \`macho.c\`) is fuzz-targeted.
+
+---
+
+## AFL++
+
+\`\`\`bash
+# Install AFL++
+sudo apt install afl++
+
+# Compile with AFL instrumentation
+make CC=afl-clang-fast CFLAGS_EXTRA="-fsanitize=address"
+
+# Create seed corpus
+mkdir -p fuzz/corpus
+cp /usr/bin/ls fuzz/corpus/ls
+cp /usr/bin/cat fuzz/corpus/cat
+
+# Run fuzzer
+afl-fuzz -i fuzz/corpus -o fuzz/findings -- ./neodax -x @@
+\`\`\`
+
+---
+
+## libFuzzer
+
+\`\`\`bash
+# Compile with libFuzzer
+clang -fsanitize=fuzzer,address -O1 \\
+  src/loader.c src/x86_decode.c src/arm64_decode.c \\
+  src/riscv_decode.c src/macho.c \\
+  fuzz/fuzz_loader.c \\
+  -o fuzz_loader
+
+# Run
+./fuzz_loader fuzz/corpus/
+\`\`\`
+
+**Fuzz harness (\`fuzz/fuzz_loader.c\`):**
+
+\`\`\`c
+#include "dax.h"
+
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+    // Write to tmpfile, load, free
+    char path[] = "/tmp/fuzz_XXXXXX";
+    int fd = mkstemp(path);
+    write(fd, data, size);
+    close(fd);
+    
+    dax_binary_t *bin = dax_load(path);
+    if (bin) dax_free(bin);
+    unlink(path);
+    return 0;
+}
+\`\`\`
+
+---
+
+## ASAN / UBSAN
+
+\`\`\`bash
+# Build with sanitizers
+make CFLAGS_EXTRA="-fsanitize=address,undefined -g"
+
+# Run on a malformed binary
+./neodax -X ./fuzz/corpus/malformed.elf
+\`\`\`
+
+---
+
+## Coverage Targets
+
+Priority files to maximize parser coverage:
+
+| File | Coverage Focus |
+|------|---------------|
+| \`loader.c\` | ELF/PE/Mach-O header parsing |
+| \`arm64_decode.c\` | All ARM64 instruction encodings |
+| \`x86_decode.c\` | All x86-64 encodings including REX/VEX |
+| \`riscv_decode.c\` | RV64GC base ISA + extensions |
+| \`macho.c\` | FAT magic, load commands, section iteration |`,
+
+  PORTING: `# Porting Guide
+
+How to add support for new architectures or binary formats to NeoDAX.
+
+---
+
+## Adding a New Architecture
+
+### Step 1 — Create the decoder
+
+Create \`src/<arch>_decode.c\` and \`include/<arch>.h\`:
+
+\`\`\`c
+// include/myarch.h
+typedef struct {
+    uint64_t address;
+    char     mnemonic[32];
+    char     ops[64];
+    int      length;        // bytes consumed
+    int      group;         // DAX_GRP_* constant
+    uint64_t branch_target; // 0 if not a branch
+    int      is_branch;
+    int      is_call;
+    int      is_ret;
+} myarch_insn_t;
+
+int myarch_decode(const uint8_t *data, size_t size, 
+                  uint64_t addr, myarch_insn_t *out);
+\`\`\`
+
+### Step 2 — Register in dispatcher
+
+Add to \`src/disasm.c\` dispatch switch:
+
+\`\`\`c
+case DAX_ARCH_MYARCH:
+    return myarch_disassemble(bin, section, opts);
+\`\`\`
+
+### Step 3 — Add architecture constant
+
+\`\`\`c
+// include/dax.h
+typedef enum {
+    DAX_ARCH_X86_64  = 0,
+    DAX_ARCH_ARM64   = 1,
+    DAX_ARCH_RISCV64 = 2,
+    DAX_ARCH_MYARCH  = 3,   // add here
+    DAX_ARCH_UNKNOWN = 99
+} dax_arch_t;
+\`\`\`
+
+### Step 4 — Detect in loader
+
+Add \`e_machine\` (ELF) or machine type (PE) detection in \`src/loader.c\`.
+
+---
+
+## Adding a New Binary Format
+
+### Step 1 — Add format constant
+
+\`\`\`c
+typedef enum {
+    DAX_FMT_ELF64  = 0,
+    DAX_FMT_PE64   = 2,
+    DAX_FMT_MYFORMAT = 7,   // add here
+} dax_fmt_t;
+\`\`\`
+
+### Step 2 — Add magic detection
+
+\`\`\`c
+// In loader.c dax_load():
+uint32_t magic = *(uint32_t *)data;
+if (magic == MYFORMAT_MAGIC) {
+    return dax_parse_myformat(bin);
+}
+\`\`\`
+
+### Step 3 — Implement parser
+
+Fill \`bin->sections\`, \`bin->entry\`, \`bin->arch\`, \`bin->fmt\`.`,
+
+  INTEGRATION: `# Integration Guide
+
+How to integrate NeoDAX into editors, CI pipelines, and other tools.
+
+---
+
+## VS Code Tasks
+
+Create \`.vscode/tasks.json\`:
+
+\`\`\`json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "NeoDAX: Analyze",
+      "type": "shell",
+      "command": "/path/to/neodax",
+      "args": ["-x", "\${file}"],
+      "presentation": { "reveal": "always", "panel": "new" }
+    },
+    {
+      "label": "NeoDAX: CFG only",
+      "type": "shell",
+      "command": "/path/to/neodax",
+      "args": ["-f", "-C", "\${file}"]
+    },
+    {
+      "label": "NeoDAX: Entropy scan",
+      "type": "shell",
+      "command": "/path/to/neodax",
+      "args": ["-e", "\${file}"]
+    },
+    {
+      "label": "NeoDAX: Start web UI",
+      "type": "shell",
+      "command": "node",
+      "args": ["/path/to/NeoDAX/js/server/server.js"],
+      "isBackground": true
+    }
+  ]
+}
+\`\`\`
+
+---
+
+## Docker
+
+\`\`\`dockerfile
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install -y build-essential nodejs libnode-dev git
+
+WORKDIR /opt/neodax
+COPY . .
+RUN make && make js
+
+EXPOSE 7070
+CMD ["node", "js/server/server.js"]
+\`\`\`
+
+\`\`\`bash
+docker build -t neodax .
+docker run -p 7070:7070 -v /binaries:/data neodax
+# → http://localhost:7070/ui
+\`\`\`
+
+---
+
+## GitHub Actions
+
+\`\`\`yaml
+name: Binary Analysis
+on: [push]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build NeoDAX
+        run: |
+          git clone https://github.com/VersaNexusIX/NeoDAX.git
+          cd NeoDAX && make
+      
+      - name: Analyze build artifact
+        run: |
+          ./NeoDAX/neodax -e -n ./build/binary | tee entropy.txt
+          grep "PACKED" entropy.txt && exit 1 || exit 0
+\`\`\`
+
+---
+
+## Python Subprocess Wrapper
+
+\`\`\`python
+import subprocess, json
+
+def analyze_binary(path, flags='-x -n'):
+    result = subprocess.run(
+        ['./neodax'] + flags.split() + [path],
+        capture_output=True, text=True
+    )
+    return result.stdout
+
+entropy = analyze_binary('./binary', '-e -n')
+print(entropy)
+\`\`\`
+
+---
+
+## Web UI
+
+\`\`\`bash
+node js/server/server.js
+# → http://localhost:7070/ui
+\`\`\`
+
+16 analysis panels: Overview · Sections · Symbols · Functions · CFG Blocks · Xrefs · Strings · Unicode · Disassembly · Decompiler · SSA · Symbolic Execution · Emulator · Entropy · Recursive Descent · Validity Filter`,
+
+  CICD_GUIDE: `# CI/CD Guide
+
+GitHub Actions workflows explained for NeoDAX maintainers.
+
+---
+
+## Workflows Overview
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| \`ci.yml\` | Push / PR | Build + test on all platforms |
+| \`nightly.yml\` | Schedule (daily) | Extended test suite |
+| \`prebuild.yml\` | Release tag | Build native addons for all targets |
+| \`npm-publish.yml\` | Release | Publish to npm |
+| \`publish.yml\` | Release | GitHub Releases |
+| \`release.yml\` | Release tag | Full release pipeline |
+| \`codeql.yml\` | Push / schedule | Security scanning |
+
+---
+
+## CI Matrix (\`ci.yml\`)
+
+\`\`\`yaml
+strategy:
+  matrix:
+    os: [ubuntu-latest, macos-latest, ubuntu-22.04]
+    arch: [x86-64, arm64]
+    include:
+      - os: ubuntu-latest
+        arch: x86-64
+        compiler: gcc
+      - os: macos-latest
+        arch: arm64
+        compiler: clang
+\`\`\`
+
+---
+
+## Prebuild Process (\`prebuild.yml\`)
+
+Builds native \`.node\` addons for each platform/arch combination using \`node-pre-gyp\`:
+
+1. Matrix: {Linux x64, Linux ARM64, macOS x64, macOS ARM64, Windows x64}
+2. Build \`neodax.node\` with cross-compilation where needed
+3. Package as \`.tar.gz\` with platform suffix
+4. Upload as GitHub Release assets
+
+Users' \`npm install neodax\` downloads the appropriate prebuild automatically.
+
+---
+
+## Release Checklist
+
+1. Update \`CHANGELOG.md\`
+2. Bump version in \`package.json\` and \`js/package.json\`
+3. Tag: \`git tag v1.0.1 && git push --tags\`
+4. GitHub Actions automatically: builds prebuilds → publishes to npm → creates GitHub Release`,
+
+  PUBLISHING: `# Publishing Guide
+
+How to publish NeoDAX to npm and GitHub Releases.
+
+---
+
+## npm Publishing
+
+### Prerequisites
+
+\`\`\`bash
+# Login to npm
+npm login
+
+# Verify package.json is correct
+npm pack --dry-run
+\`\`\`
+
+### Manual publish
+
+\`\`\`bash
+# From repo root
+npm publish --access public
+\`\`\`
+
+### Automated (CI)
+
+The \`npm-publish.yml\` workflow publishes automatically when a GitHub Release is created. Requires \`NPM_TOKEN\` secret in repository settings.
+
+---
+
+## Version Strategy
+
+NeoDAX follows Semantic Versioning:
+
+| Change | Version bump |
+|--------|-------------|
+| Bug fixes | PATCH (1.0.0 → 1.0.1) |
+| New features (backward compatible) | MINOR (1.0.0 → 1.1.0) |
+| Breaking API changes | MAJOR (1.0.0 → 2.0.0) |
+
+---
+
+## Package Contents (\`.npmignore\`)
+
+Published package includes:
+- \`src/\` — C source files (needed for native compilation)
+- \`include/\` — Header files
+- \`arch/\` — Architecture-specific assembly
+- \`js/\` — JavaScript API, TypeScript declarations, server
+- \`build_js.sh\` — Build script
+- \`package.json\`, \`README.md\`, \`LICENSE\`
+
+Excluded:
+- \`fuzz/\`, \`tests/\`, \`.github/\`, build artifacts`,
+
+  CONTRIBUTING: `# Contributing to NeoDAX
+
+---
+
+## Getting Started
+
+1. Fork the repository
+2. Clone your fork: \`git clone https://github.com/YOUR_USERNAME/NeoDAX.git\`
+3. Create a feature branch: \`git checkout -b feature/my-feature\`
+4. Make changes and test
+5. Push and open a Pull Request
+
+---
+
+## Code Style
+
+- **C99** — no GNU extensions except \`open_memstream\` (POSIX)
+- **No external dependencies** — if you need a library, implement the necessary subset
+- **Tab indentation** — 4-space tabs in C source
+- **Function naming** — \`dax_module_verb()\` pattern
+- **Error handling** — always check return values, propagate errors up
+
+---
+
+## Testing
+
+\`\`\`bash
+# Build and run basic tests
+make && make test
+
+# Test JS addon
+make js && node js/test/basic.js
+
+# Test against real binaries
+./neodax -X /usr/bin/ls
+./neodax -X /usr/bin/python3
+\`\`\`
+
+---
+
+## Pull Request Guidelines
+
+- One feature/fix per PR
+- Update relevant \`.md\` documentation
+- Add test cases for new analysis features
+- Ensure CI passes on all platforms
+- Describe the problem your PR solves, not just the solution
+
+---
+
+## Architecture Contributions
+
+If adding a new architecture decoder:
+1. Read \`PORTING.md\` first
+2. Implement all instruction groups (call/branch/ret/stack/syscall)
+3. Test with at least 3 real binaries
+4. Add to the feature matrix in \`README.md\`
+
+---
+
+## Bug Reports
+
+Use GitHub Issues with:
+- NeoDAX version (\`./neodax -h\`)
+- OS and architecture
+- Minimal reproduction command
+- Expected vs actual output`,
+
+  FAQ: `# Frequently Asked Questions
+
+---
+
+## General
+
+**Q: What is NeoDAX?**
+
+NeoDAX is a binary analysis framework written in C99 with zero external dependencies. It disassembles ELF, PE, and Mach-O binaries for x86-64, AArch64, and RISC-V; builds control-flow graphs; detects entropy anomalies; recursively follows code; validates instructions; lifts to SSA; symbolically executes; and emulates ARM64.
+
+**Q: What platforms does it run on?**
+
+Linux (x86-64, ARM64), Android/Termux (AArch64), macOS (ARM64, x86-64), FreeBSD, OpenBSD. Windows support is partial (builds with MinGW but less tested).
+
+**Q: Does it run on Android?**
+
+Yes. Termux is a first-class target. \`pkg install nodejs clang make && make\` builds both the CLI and JS addon.
+
+**Q: Does NeoDAX execute the binaries it analyzes?**
+
+No — except for the \`-I\` emulator flag, which runs an isolated concrete emulator that cannot affect the host system. All other analysis is purely static.
+
+**Q: Why C99 with no dependencies?**
+
+To be maximally portable. NeoDAX runs on ancient Linuxes, Android, BSD, and embedded systems without requiring a package manager or internet access.
+
+---
+
+## Build
+
+**Q: \`make\` says \`open_memstream\` not found.**
+
+\`open_memstream\` requires Linux glibc ≥ 2.10 or macOS ≥ 10.13. On older systems, use a newer distro or Termux.
+
+**Q: The JS addon crashes immediately after build.**
+
+Check the Node.js major version used to compile matches the one running it. Rebuild with \`make js\` after switching Node versions.
+
+**Q: \`log2\` undefined / linker error.**
+
+The entropy module uses \`log2()\` from \`<math.h>\`. The Makefile must contain \`LDFLAGS = -lm\`. Check with \`grep LDFLAGS Makefile\`.
+
+---
+
+## Analysis
+
+**Q: Why does CFG show phantom blocks?**
+
+This was a known issue in pre-1.0 versions. The two-pass CFG builder (v1.0.0+) correctly handles jump tricks. Update to the latest version.
+
+**Q: Decompiler output looks wrong for my function.**
+
+The decompiler is ARM64-only and doesn't insert phi nodes. For functions with complex control flow (many loops/branches), output may be verbose. Use \`-Q\` for SSA form which is more accurate.
+
+**Q: Can NeoDAX analyze kernel modules?**
+
+Yes — kernel modules are standard ELF relocatable objects. Use \`-x\` for full analysis. Privileged instructions will be flagged by \`-V\` as expected (they're legitimate in kernel code).
+
+**Q: How do I analyze just one function?**
+
+Use \`-A\` and \`-E\` to specify the address range:
+\`\`\`bash
+./neodax -A 0x1234 -E 0x1280 -C ./binary
+\`\`\``,
+
+  TROUBLESHOOTING: `# Troubleshooting
+
+Common build and runtime issues with NeoDAX.
+
+---
+
+## Build Issues
+
+### \`log2\` undefined / linker error
+
+**Symptom:** \`undefined reference to 'log2'\`
+
+**Fix:**
+\`\`\`bash
+grep LDFLAGS Makefile   # should show: LDFLAGS = -lm
+sed -i 's/^LDFLAGS.*/LDFLAGS = -lm/' Makefile
+make clean && make
+\`\`\`
+
+---
+
+### \`open_memstream\` not found
+
+**Cause:** Requires Linux glibc ≥ 2.10, macOS ≥ 10.13
+
+**Fix (macOS):**
+\`\`\`bash
+make CC=clang CFLAGS_EXTRA="-D_DARWIN_C_SOURCE"
+\`\`\`
+
+---
+
+### \`node_api.h\` not found
+
+**Fix:**
+\`\`\`bash
+# Debian/Ubuntu
+sudo apt install libnode-dev
+
+# Fedora
+sudo dnf install nodejs-devel
+
+# Termux — headers bundled with nodejs
+pkg install nodejs
+\`\`\`
+
+---
+
+### JS addon crashes (exit code 139)
+
+**Cause:** Node.js version mismatch between compile-time and runtime.
+
+**Fix:**
+\`\`\`bash
+make clean
+make js   # recompile against current Node.js
+\`\`\`
+
+---
+
+## Runtime Issues
+
+### Segfault on large binary
+
+**Cause:** Stack overflow in recursive analysis on deeply nested CFGs.
+
+**Fix:** Use iterative flags: \`-x\` instead of \`-X\`, avoid \`-P\` symbolic execution on very large functions.
+
+---
+
+### CFG shows incorrect blocks
+
+**Cause:** Running NeoDAX < v1.0.0 without two-pass CFG builder.
+
+**Fix:** Update to v1.0.0+.
+
+---
+
+### No functions detected on stripped binary
+
+**Expected behavior** — stripped binaries have no symbol table. Use \`-f\` for heuristic prologue detection:
+\`\`\`bash
+./neodax -f -x ./stripped_binary
+\`\`\`
+
+---
+
+### Entropy scan shows 0.0 for all sections
+
+**Cause:** Binary loaded as raw format — sections weren't parsed.
+
+**Check:** Run \`./neodax -l ./binary\` to verify sections are detected. If not, the file may be truncated or use an unsupported format variant.`,
+
+  SECURITY: `# Security Policy
+
+---
+
+## Supported Versions
+
+| Version | Status | Security Updates |
+|---------|--------|----------------|
+| 1.0.x | ✅ Active — current | Yes |
+| < 1.0 | ❌ Unsupported | No |
+
+---
+
+## Scope
+
+NeoDAX parses untrusted binary files. **In scope:**
+
+- Memory safety bugs when parsing malformed ELF/PE/Mach-O files (buffer overflows, OOB reads/writes, use-after-free, integer overflows)
+- Vulnerabilities in the N-API addon exploitable via the JS API
+- Path traversal in the REST server (\`js/server/server.js\`)
+- Denial-of-service via malformed input (infinite loops, excessive memory allocation)
+- Bypass of instruction validity checks in the IVF module
+
+**Out of scope:**
+- Issues requiring physical access
+- Theoretical vulnerabilities without a practical exploit
+- Emulator producing incorrect output on edge-case inputs (accuracy bugs, not security bugs)
+- Vulnerabilities in binaries *analyzed by* NeoDAX
+
+---
+
+## Reporting a Vulnerability
+
+**Do not open a public issue for security vulnerabilities.**
+
+**Preferred:** [GitHub Security Advisories](https://github.com/VersaNexusIX/NeoDAX/security/advisories/new) — private, encrypted report.
+
+**Alternative:** Open a blank issue titled \`[SECURITY] Private report request\` — response within 48 hours with a secure channel.
+
+### What to include
+
+- Description and impact
+- Steps to reproduce (minimal command or file)
+- Proof-of-concept (crafted binary or command sequence)
+- Environment (OS, arch, NeoDAX version, compiler)
+
+---
+
+## Response Timeline
+
+| Milestone | Target |
+|---|---|
+| Acknowledgement | 48 hours |
+| Severity assessment | 7 days |
+| Fix for critical issues | 30 days |
+| Fix for moderate issues | 90 days |`,
+
+  SUPPORT: `# Support
+
+---
+
+## Getting Help
+
+### Documentation
+
+All documentation is in the repository root as \`.md\` files. Start with:
+- \`README.md\` — Overview and quick start
+- \`FAQ.md\` — Common questions
+- \`TROUBLESHOOTING.md\` — Build and runtime issues
+
+### GitHub Issues
+
+For bugs and feature requests: [github.com/VersaNexusIX/NeoDAX/issues](https://github.com/VersaNexusIX/NeoDAX/issues)
+
+Include:
+- NeoDAX version (\`./neodax -h | head -1\`)
+- OS and architecture
+- Exact command that fails
+- Full output (use \`-n\` for no color in pastes)
+
+### Security Issues
+
+See [SECURITY.md](SECURITY.md) — do **not** use public issues for security vulnerabilities.
+
+---
+
+## Commercial Support
+
+NeoDAX is MIT licensed and community-maintained. No commercial support is offered at this time.
+
+---
+
+## Community
+
+- GitHub Discussions for general questions
+- Pull Requests welcome — see CONTRIBUTING.md`
+};
+
+// ── MOBILE SIDEBAR ──
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const ham = document.getElementById('hamburger');
+  if (sidebar.classList.contains('mobile-open')) {
+    closeSidebar();
+  } else {
+    sidebar.classList.add('mobile-open');
+    overlay.classList.add('open');
+    ham.classList.add('open');
+  }
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const ham = document.getElementById('hamburger');
+  sidebar.classList.remove('mobile-open');
+  overlay.classList.remove('open');
+  if (ham) ham.classList.remove('open');
+}
+
+function onNavClick() {
+  if (window.innerWidth <= 768) closeSidebar();
+}
+
+// ── NAVIGATION ──
+let currentDoc = 'home';
+
+function setActive(id) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+function updateBreadcrumb(title) {
+  const bc = document.getElementById('breadcrumb');
+  if (bc) bc.textContent = title;
+}
+
+function showHome() {
+  onNavClick();
+  setActive('nav-home');
+  currentDoc = 'home';
+  updateBreadcrumb('Introduction');
+  document.getElementById('mainContent').innerHTML = homeHTML();
+  document.getElementById('mainContent').scrollTop = 0;
+  const dft = document.getElementById('doc-footer-mount');
+  if (dft) dft.innerHTML = renderFooter();
+}
+
+function loadDoc(key, navId) {
+  onNavClick();
+  setActive('nav-' + navId);
+  currentDoc = navId;
+
+  const content = docs[key];
+  if (!content) {
+    document.getElementById('mainContent').innerHTML = `<div class="loading">// document not found: ${key}</div>`;
+    return;
+  }
+
+  const title = key.replace(/_/g, ' ');
+  updateBreadcrumb(title);
+
+  const rendered = marked.parse(content);
+  document.getElementById('mainContent').innerHTML = `
+    <div style="padding:8px 24px;border-bottom:1px solid rgba(0,255,65,0.08);background:var(--black);font-size:0.6rem;color:var(--green-dim);display:flex;align-items:center;gap:6px;position:sticky;top:0;z-index:50;letter-spacing:0.06em;">
+      <a href="index.html" style="color:var(--green-dark);text-decoration:none;">HOME</a>
+      <span style="color:var(--green-dark)">›</span>
+      <span style="cursor:pointer;color:var(--green-dim);" onclick="showHome()">DOCS</span>
+      <span style="color:var(--green-dark)">›</span>
+      <span id="breadcrumb" style="color:var(--green-mid)">${title}</span>
+      <span style="margin-left:auto;color:var(--green-dark)">${new Date().toISOString().split('T')[0]}</span>
+    </div>
+    <div class="content-wrapper">
+      <div class="doc-content">${rendered}</div>
+    </div>
+    <div id="doc-footer-mount"></div>
+  `;
+  document.getElementById('mainContent').scrollTop = 0;
+}
+
+// ── HOME PAGE ──
+function homeHTML() {
+  return `
+    <div style="padding:8px 24px;border-bottom:1px solid rgba(0,255,65,0.08);background:var(--black);font-size:0.6rem;color:var(--green-dim);display:flex;align-items:center;gap:6px;position:sticky;top:0;z-index:50;letter-spacing:0.06em;">
+      <span style="color:var(--green-mid)">NEODAX</span>
+      <span style="color:var(--green-dark)">›</span>
+      <span style="color:var(--green-dim)">Documentation</span>
+      <span style="margin-left:auto;color:var(--green-dark)">v1.0.0 · MIT</span>
+    </div>
+    <div class="hero">
+      <div class="hero-ascii">   ███╗   ██╗███████╗ ██████╗
+   ████╗  ██║██╔════╝██╔═══██╗
+   ██╔██╗ ██║█████╗  ██║   ██║
+   ██║╚██╗██║██╔══╝  ██║   ██║
+   ██║ ╚████║███████╗╚██████╔╝
+   ╚═╝  ╚═══╝╚══════╝ ╚═════╝  <span class="cursor"></span></div>
+
+      <div class="hero-tagline">Multi-architecture binary analysis framework</div>
+
+      <div class="quick-install">
+        <div><span class="comment"># Clone and build</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">git clone https://github.com/VersaNexusIX/NeoDAX.git</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">cd NeoDAX && make</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">./neodax -x ./binary</span></div>
+        <div style="margin-top:10px"><span class="comment"># Or install via npm</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm install neodax</span></div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <span class="stat-value">3</span>
+          <span class="stat-label">Architectures</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-value">5</span>
+          <span class="stat-label">Binary Formats</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-value">16</span>
+          <span class="stat-label">Analysis Panels</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-value">0</span>
+          <span class="stat-label">Dependencies</span>
+        </div>
+      </div>
+
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:var(--green-dim);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:14px;">// Core Features</div>
+
+      <div class="feature-grid">
+        <div class="feature-card" onclick="loadDoc('CLI_REFERENCE','cli')">
+          <div class="feature-title">Disassembler</div>
+          <div class="feature-desc">x86-64, AArch64, RISC-V RV64GC. Symbol resolution, C++ demangling, hex byte display, instruction group coloring.</div>
+          <span class="feature-flag">-y -d -g -a</span>
+        </div>
+        <div class="feature-card" onclick="loadDoc('ALGORITHMS','algorithms')">
+          <div class="feature-title">CFG Builder</div>
+          <div class="feature-desc">Two-pass algorithm with jump-trick awareness and opaque predicate detection. Loop detection via dominator analysis.</div>
+          <span class="feature-flag">-C -L</span>
+        </div>
+        <div class="feature-card" onclick="loadDoc('DECOMPILER','decompiler')">
+          <div class="feature-title">Decompiler & SSA</div>
+          <div class="feature-desc">ARM64 SSA lifting with versioned register assignments. Pseudo-C output from IR. No phi-node insertion.</div>
+          <span class="feature-flag">-Q -D</span>
+        </div>
+        <div class="feature-card" onclick="loadDoc('EMULATOR','emulator')">
+          <div class="feature-title">ARM64 Emulator</div>
+          <div class="feature-desc">Concrete execution with 32 GP registers, 64 memory pages, CPSR flags. Step-by-step trace output. Max 8192 steps.</div>
+          <span class="feature-flag">-I</span>
+        </div>
+        <div class="feature-card" onclick="loadDoc('ALGORITHMS','algorithms')">
+          <div class="feature-title">Entropy Analysis</div>
+          <div class="feature-desc">Shannon entropy sliding window (256B/64B). Detects packed, encrypted, and compressed sections automatically.</div>
+          <span class="feature-flag">-e</span>
+        </div>
+        <div class="feature-card" onclick="loadDoc('OBFUSCATION','obfuscation')">
+          <div class="feature-title">Anti-Obfuscation</div>
+          <div class="feature-desc">Recursive descent, instruction validity filter, jump trick detection, NOP/INT3 run identification.</div>
+          <span class="feature-flag">-R -V</span>
+        </div>
+        <div class="feature-card" onclick="loadDoc('BINARY_FORMATS','binary-formats')">
+          <div class="feature-title">Format Support</div>
+          <div class="feature-desc">ELF64/32, PE64+/32, Mach-O 64, FAT Universal, Raw binary. Automatic format detection from magic bytes.</div>
+          <span class="feature-flag">ELF · PE · MachO</span>
+        </div>
+        <div class="feature-card" onclick="loadDoc('NPM_USAGE','npm')">
+          <div class="feature-title">JavaScript API</div>
+          <div class="feature-desc">N-API native addon. TypeScript declarations included. Express/Fastify ready. Web UI with 16 analysis panels.</div>
+          <span class="feature-flag">npm install neodax</span>
+        </div>
+      </div>
+
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:var(--green-dim);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:14px;">// Supported Formats & Architectures</div>
+
+      <table style="width:100%;border-collapse:collapse;font-size:0.7rem;border:1px solid var(--green-dark);margin-bottom:32px;">
+        <thead>
+          <tr>
+            <th style="background:rgba(0,255,65,0.08);color:var(--green-bright);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:8px 14px;border:1px solid var(--green-dark);font-size:0.65rem;">Format</th>
+            <th style="background:rgba(0,255,65,0.08);color:var(--green-bright);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:8px 14px;border:1px solid var(--green-dark);font-size:0.65rem;">x86-64</th>
+            <th style="background:rgba(0,255,65,0.08);color:var(--green-bright);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:8px 14px;border:1px solid var(--green-dark);font-size:0.65rem;">AArch64</th>
+            <th style="background:rgba(0,255,65,0.08);color:var(--green-bright);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:8px 14px;border:1px solid var(--green-dark);font-size:0.65rem;">RISC-V RV64</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[['ELF64/32','✓','✓','✓'],['PE64+/32','✓','✓','—'],['Mach-O 64','✓','✓','—'],['Mach-O FAT','✓','✓','—'],['Raw','✓','✓','✓']].map(r => `
+          <tr>
+            <td style="padding:7px 14px;border:1px solid rgba(0,255,65,0.1);color:var(--green-bright);font-weight:bold;">${r[0]}</td>
+            ${r.slice(1).map(v => `<td style="padding:7px 14px;border:1px solid rgba(0,255,65,0.1);color:${v==='✓'?'var(--green-bright)':'var(--green-dark)'};text-align:center;">${v}</td>`).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table>
+
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:var(--green-dim);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:14px;">// Documentation Index</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:32px;" class="doc-index-grid">
+        ${[
+          ['BUILDING','building','Build Instructions'],
+          ['NPM_USAGE','npm','NPM & JavaScript API'],
+          ['CLI_REFERENCE','cli','Complete CLI Reference'],
+          ['API','api','C API Reference'],
+          ['ARCHITECTURE','architecture','Internal Architecture'],
+          ['ALGORITHMS','algorithms','Analysis Algorithms'],
+          ['DECOMPILER','decompiler','SSA & Decompiler'],
+          ['EMULATOR','emulator','ARM64 Emulator'],
+          ['BINARY_FORMATS','binary-formats','Binary Format Support'],
+          ['OBFUSCATION','obfuscation','Obfuscation Analysis'],
+          ['PERFORMANCE','performance','Performance Guide'],
+          ['INTEGRATION','integration','Integration Guide'],
+          ['FAQ','faq','FAQ'],
+          ['TROUBLESHOOTING','troubleshooting','Troubleshooting'],
+          ['SECURITY','security','Security Policy'],
+          ['CHANGELOG','changelog','Changelog'],
+        ].map(([key, id, label]) => `
+          <div onclick="loadDoc('${key}','${id}')" style="display:flex;align-items:center;gap:10px;padding:8px 14px;border:1px solid var(--green-dark);background:var(--black-panel);cursor:pointer;font-size:0.7rem;color:var(--green-dim);letter-spacing:0.04em;transition:all 0.15s;-webkit-tap-highlight-color:transparent;" onmouseover="this.style.borderColor='var(--green-mid)';this.style.color='var(--green-bright)'" onmouseout="this.style.borderColor='var(--green-dark)';this.style.color='var(--green-dim)'">
+            <span style="color:var(--green-dark);font-size:0.6rem;flex-shrink:0;">▷</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${label}</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="border-top:1px solid var(--green-dark);padding-top:16px;font-size:0.6rem;color:var(--green-dark);letter-spacing:0.08em;display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;">
+        <span>NeoDAX v1.0.0 · MIT License · VersaNexusIX</span>
+        <span>C99 · Zero External Dependencies</span>
+      </div>
+    </div>
+    <div id="home-footer-mount"></div>
+  `;
+}
+
+// ── SEARCH ──
+function filterNav(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.nav-item').forEach(item => {
+    if (!q) {
+      item.style.display = '';
+      return;
+    }
+    const text = item.textContent.toLowerCase();
+    item.style.display = text.includes(q) ? '' : 'none';
+  });
+
+  // Also show/hide section headers
+  document.querySelectorAll('.sidebar-section-header').forEach(h => {
+    if (!q) { h.style.display = ''; return; }
+    // show if any sibling nav-items are visible
+    let sib = h.nextElementSibling;
+    let anyVisible = false;
+    while (sib && !sib.classList.contains('sidebar-section-header')) {
+      if (sib.style.display !== 'none') anyVisible = true;
+      sib = sib.nextElementSibling;
+    }
+    h.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+// ── KEYBOARD SHORTCUT ──
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('searchInput').value = '';
+    filterNav('');
+    document.getElementById('searchInput').blur();
+  }
+});
+
+// ── INIT ──
+showHome();
+setTimeout(() => {
+  const hfm = document.getElementById('home-footer-mount');
+  if (hfm) hfm.innerHTML = renderFooter();
+}, 10);
+</script>
+</body>
+</html>
