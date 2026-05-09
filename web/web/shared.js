@@ -70,7 +70,7 @@ function renderFooter() {
       </div>
       <div class="footer-bottom">
         <span class="footer-copy">© VersaNexusIX — All rights reserved.</span>
-        <span style="color:var(--dim2)">NeoDAX v1.0.8 · Apache 2.0 · C99 · Zero Dependencies</span>
+        <span style="color:var(--dim2)">NeoDAX v1.1.1 · Apache 2.0 · C99 · Zero Dependencies</span>
       </div>
     </div>
   </footer>`;
