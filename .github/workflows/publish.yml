@@ -1,0 +1,126 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run only (no actual publish)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version
+        id: ver
+        run: |
+          VERSION="$(node -p "require('./js/package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: $VERSION"
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y gcc nodejs libnode-dev
+      - name: Install deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install node
+      - name: Build
+        run: bash setup.sh <<< "2"
+      - name: Run tests
+        run: node js/test/basic.js
+
+  prebuilds:
+    name: Prebuild (${{ matrix.target }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-latest
+          - target: linux-arm64
+            os: ubuntu-24.04-arm
+          - target: darwin-arm64
+            os: macos-latest
+          - target: darwin-x64
+            os: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y gcc nodejs libnode-dev
+      - name: Install deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install node
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Stage prebuild
+        run: |
+          mkdir -p js/prebuilds
+          cp js/neodax.node js/prebuilds/neodax-${{ matrix.target }}.node
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-${{ matrix.target }}
+          path: js/prebuilds/neodax-${{ matrix.target }}.node
+
+  publish:
+    name: Publish
+    needs: [validate, prebuilds]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v4
+        with:
+          path: js/prebuilds
+          merge-multiple: true
+      - name: Verify prebuilds
+        run: |
+          for f in linux-x64 linux-arm64 darwin-arm64 darwin-x64; do
+            test -f "js/prebuilds/neodax-${f}.node" || { echo "Missing: neodax-${f}.node"; exit 1; }
+          done
+          echo "All 4 prebuilds present."
+      - name: Install JS deps
+        run: npm ci --ignore-scripts
+      - name: Dry run check
+        if: inputs.dry_run == true
+        run: |
+          echo "DRY RUN: would publish version ${{ needs.validate.outputs.version }}"
+          npm publish --dry-run --access public
+      - name: Publish to npm
+        if: inputs.dry_run == false
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create GitHub Release
+        if: inputs.dry_run == false
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.validate.outputs.version }}
+          name: v${{ needs.validate.outputs.version }}
+          files: js/prebuilds/*.node
+          generate_release_notes: true

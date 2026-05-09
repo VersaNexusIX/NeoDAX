@@ -1,0 +1,46 @@
+name: Prebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload artifacts to GitHub Release (requires tag)"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  prebuild:
+    name: Prebuild (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-latest
+          - target: linux-arm64
+            os: ubuntu-24.04-arm
+          - target: darwin-arm64
+            os: macos-latest
+          - target: darwin-x64
+            os: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y gcc nodejs libnode-dev
+      - name: Install deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install node
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Stage
+        run: |
+          mkdir -p js/prebuilds
+          cp js/neodax.node js/prebuilds/neodax-${{ matrix.target }}.node
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-${{ matrix.target }}
+          path: js/prebuilds/neodax-${{ matrix.target }}.node
+          retention-days: 30

@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+      - "learn/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+      - "learn/**"
+
+jobs:
+  linux-gcc:
+    name: Linux x64 (GCC)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get install -y gcc nodejs libnode-dev
+      - name: Build (Code mode)
+        run: bash setup.sh <<< "2"
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Smoke test
+        run: ./neodax -x -e -V /bin/ls
+      - name: JS test
+        run: node js/test/basic.js
+
+  linux-clang:
+    name: Linux x64 (Clang)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get install -y clang nodejs libnode-dev
+      - name: Build
+        env:
+          CC: clang
+        run: bash setup.sh <<< "2"
+      - name: Smoke test
+        run: ./neodax -x /bin/ls
+
+  linux-arm64:
+    name: Linux ARM64
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get install -y gcc nodejs libnode-dev
+      - name: Build
+        run: bash setup.sh <<< "2"
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Smoke test
+        run: ./neodax -x /bin/ls
+      - name: JS test
+        run: node js/test/basic.js
+
+  macos-arm64:
+    name: macOS ARM64 (Apple Silicon)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: brew install node
+      - name: Build
+        run: bash setup.sh <<< "2"
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Smoke test
+        run: ./neodax -x /bin/ls
+      - name: JS test
+        run: node js/test/basic.js
+
+  macos-x64:
+    name: macOS x64 (Intel)
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: brew install node
+      - name: Build
+        run: bash setup.sh <<< "2"
+      - name: Smoke test
+        run: ./neodax -x /bin/ls
+
+  node-matrix:
+    name: Node ${{ matrix.node }} (Linux x64)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install libnode-dev
+        run: sudo apt-get install -y gcc libnode-dev
+      - name: Build JS only
+        run: bash build_js.sh
+      - name: JS test
+        run: node js/test/basic.js
+
+  ci-pass:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    needs: [linux-gcc, linux-clang, macos-arm64]
+    if: always()
+    steps:
+      - name: Check required jobs
+        run: |
+          if [[ "${{ needs.linux-gcc.result }}" != "success" || \
+                "${{ needs.linux-clang.result }}" != "success" || \
+                "${{ needs.macos-arm64.result }}" != "success" ]]; then
+            echo "One or more required jobs failed."
+            exit 1
+          fi
+          echo "All required jobs passed."

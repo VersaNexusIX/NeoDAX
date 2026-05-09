@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 1.1.0)"
+        required: true
+        type: string
+      prerelease:
+        description: "Pre-release suffix (e.g. beta.1) - leave blank for stable"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Bump version and tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Compute full version
+        id: ver
+        run: |
+          BASE="${{ inputs.version }}"
+          PRE="${{ inputs.prerelease }}"
+          if [ -n "$PRE" ]; then
+            FULL="${BASE}-${PRE}"
+          else
+            FULL="$BASE"
+          fi
+          echo "full=$FULL" >> "$GITHUB_OUTPUT"
+          echo "tag=v$FULL"  >> "$GITHUB_OUTPUT"
+
+      - name: Bump js/package.json
+        run: |
+          cd js
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json'));
+            pkg.version = '${{ steps.ver.outputs.full }}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Bump version in Makefile printf (banner)
+        run: |
+          sed -i "s/NeoDAX v[0-9]*\.[0-9]*\.[0-9]*/NeoDAX v${{ steps.ver.outputs.full }}/g" setup.sh
+
+      - name: Commit and tag
+        run: |
+          git add js/package.json setup.sh
+          git commit -m "chore: release ${{ steps.ver.outputs.tag }}"
+          git tag "${{ steps.ver.outputs.tag }}"
+          git push origin HEAD
+          git push origin "${{ steps.ver.outputs.tag }}"
