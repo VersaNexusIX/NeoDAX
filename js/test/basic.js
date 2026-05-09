@@ -41,8 +41,8 @@ test('version() returns a string', () => {
     assert.match(v, /^\d+\.\d+\.\d+$/);
 });
 
-test('version() is 1.0.8', () => {
-    assert.strictEqual(neodax.version(), '1.0.8');
+test('version() is 1.1.1', () => {
+    assert.strictEqual(neodax.version(), '1.1.1');
 });
 
 const fs      = require('fs');
