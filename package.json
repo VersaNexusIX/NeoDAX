@@ -1,0 +1,65 @@
+{
+  "name": "neodax",
+  "version": "1.1.1",
+  "description": "NeoDAX \u2014 binary analysis, disassembler, CFG, symbolic execution, decompiler. x86-64 \u00b7 AArch64 \u00b7 RISC-V. Zero external dependencies.",
+  "main": "js/index.js",
+  "types": "js/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VersaNexusIX/NeoDAX.git"
+  },
+  "homepage": "https://github.com/VersaNexusIX/NeoDAX",
+  "bugs": {
+    "url": "https://github.com/VersaNexusIX/NeoDAX/issues"
+  },
+  "scripts": {
+    "install": "node js/scripts/install.js",
+    "build": "node js/scripts/build.js",
+    "rebuild": "node js/scripts/build.js --force",
+    "test": "node js/test/basic.js",
+    "start": "node js/server/server.js"
+  },
+  "keywords": [
+    "disassembler",
+    "binary-analysis",
+    "reverse-engineering",
+    "elf",
+    "pe",
+    "macho",
+    "x86",
+    "arm64",
+    "aarch64",
+    "riscv",
+    "cfg",
+    "decompiler",
+    "symbolic-execution",
+    "entropy",
+    "malware-analysis",
+    "security",
+    "neodax"
+  ],
+  "author": "VersaNexusIX",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "os": [
+    "linux",
+    "darwin",
+    "android"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "js/",
+    "src/",
+    "include/",
+    "arch/",
+    "build_js.sh",
+    "setup.sh",
+    "LICENSE",
+    "README.md"
+  ]
+}

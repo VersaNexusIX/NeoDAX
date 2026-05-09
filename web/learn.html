@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeoDAX // Learning Path</title>
+<meta name="description" content="NeoDAX Learning Path — a structured course from beginner to advanced in binary analysis and reverse engineering.">
+<meta name="keywords" content="NeoDAX learning path, reverse engineering course, binary analysis tutorial, CFG learning, symbolic execution course">
+<meta name="author" content="VersaNexusIX">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#080b0f">
+<meta property="og:title" content="NeoDAX Learning Path">
+<meta property="og:description" content="A complete step-by-step journey to learn binary analysis and reverse engineering with NeoDAX.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://github.com/VersaNexusIX/NeoDAX/">
+<meta property="og:image" content="https://files.catbox.moe/rperzp.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NeoDAX Learning Path">
+<meta name="twitter:description" content="From zero to advanced reverse engineering — structured, practical, and real-world.">
+<meta name="twitter:image" content="https://files.catbox.moe/rperzp.jpg">
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="canonical" href="https://github.com/VersaNexusIX/NeoDAX/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Course","name":"NeoDAX Learning Path","description":"A structured learning path covering binary analysis, reverse engineering, control flow graphs, symbolic execution, and real-world practice using NeoDAX.","provider":{"@type":"Person","name":"VersaNexusIX"},"educationalLevel":"Beginner to Advanced","inLanguage":"en","url":"https://github.com/VersaNexusIX/NeoDAX"}
+</script>
+<style>
+/* ── LEARN LAYOUT ── */
+.learn-layout { display: flex; flex: 1; overflow: hidden; }
+.learn-sidebar {
+  width: 220px; background: var(--bg1); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+}
+.learn-main { flex: 1; overflow-y: auto; background: var(--bg); }
+
+/* ── INDEX VIEW ── */
+.learn-hero-wrap { max-width: 860px; margin: 0 auto; padding: 32px 40px 24px; }
+.learn-hero-top { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 24px; }
+.lh-glyph {
+  width: 52px; height: 52px; background: var(--yellow); flex-shrink: 0;
+  clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700; font-size: 20px; color: #000;
+}
+.lh-title { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--yellow); margin-bottom: 4px; }
+.lh-sub { font-size: 11px; color: var(--dim); letter-spacing: .04em; margin-bottom: 10px; }
+
+/* Progress */
+.progress-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 7px;
+  padding: 14px 18px; margin-bottom: 28px;
+}
+.progress-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.progress-title { font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text); }
+.progress-stat { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.progress-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; position: relative; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--yellow), var(--yellow2)); transition: width .4s ease; border-radius: 2px; }
+.progress-reset { font-family: var(--mono); font-size: 10px; color: var(--dim2); cursor: pointer; text-decoration: none; margin-top: 8px; display: inline-block; }
+.progress-reset:hover { color: var(--dim); }
+
+/* Levels wrap */
+.levels-wrap { max-width: 860px; margin: 0 auto; padding: 0 40px 40px; }
+
+.level-block { margin-bottom: 10px; }
+.level-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: 7px;
+  cursor: pointer; user-select: none; transition: border-color .15s, background .15s;
+}
+.level-header:hover { border-color: var(--border2); background: var(--bg3); }
+.level-icon { font-size: 13px; color: var(--yellow); flex-shrink: 0; }
+.level-name { font-family: var(--sans); font-size: 12px; font-weight: 700; color: var(--text); flex: 1; }
+.level-progress-mini { font-family: var(--mono); font-size: 10px; color: var(--dim2); }
+.level-pct { font-family: var(--mono); font-size: 10px; color: var(--yellow); min-width: 30px; text-align: right; }
+.level-chevron { font-size: 10px; color: var(--dim2); transition: transform .2s; }
+.level-block.collapsed .level-chevron { transform: rotate(-90deg); }
+.level-block.collapsed .lesson-list { display: none; }
+
+.lesson-list {
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 7px 7px; overflow: hidden;
+}
+.lesson-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; border-bottom: 1px solid rgba(30,45,61,.5);
+  cursor: pointer; transition: background .08s; user-select: none;
+}
+.lesson-item:last-child { border-bottom: none; }
+.lesson-item:hover { background: rgba(255,255,255,.03); }
+.lesson-item.done { opacity: .65; }
+.lesson-item.done:hover { opacity: 1; }
+.lesson-num { font-family: var(--mono); font-size: 10px; color: var(--dim2); width: 22px; text-align: right; flex-shrink: 0; }
+.lesson-check {
+  width: 14px; height: 14px; border: 1px solid var(--border2);
+  border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--dim2); transition: all .12s;
+}
+.lesson-item.done .lesson-check { border-color: var(--green); background: rgba(63,185,80,.15); color: var(--green2); }
+.lesson-title { font-size: 12px; color: var(--dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-item:hover .lesson-title { color: var(--text); }
+.lesson-item.done .lesson-title { color: var(--dim2); }
+.lesson-tag { font-family: var(--mono); font-size: 9px; color: var(--dim2); flex-shrink: 0; }
+
+/* ── LESSON VIEWER ── */
+.lesson-topbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 20px; background: var(--bg1); border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px; color: var(--dim2);
+  position: sticky; top: 0; z-index: 50; flex-wrap: wrap;
+}
+.lesson-topbar a, .lesson-topbar span[onclick] { color: var(--dim); text-decoration: none; cursor: pointer; }
+.lesson-topbar a:hover, .lesson-topbar span[onclick]:hover { color: var(--yellow); }
+.lesson-topbar .sep { color: var(--dim2); }
+.lesson-nav-btns { margin-left: auto; display: flex; gap: 6px; }
+.lesson-nav-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--dim); padding: 4px 10px; border-radius: 4px;
+  font-family: var(--mono); font-size: 10px; cursor: pointer; transition: all .12s;
+}
+.lesson-nav-btn:hover:not(:disabled) { border-color: var(--yellow); color: var(--yellow); }
+.lesson-nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+.lesson-done-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 20px; background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+.lesson-level-lbl { font-family: var(--mono); font-size: 10px; color: var(--dim); }
+.mark-done-btn {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--dim);
+  padding: 5px 14px; border-radius: 5px; font-size: 11px; font-family: var(--sans);
+  font-weight: 600; cursor: pointer; transition: all .12s;
+}
+.mark-done-btn:hover { border-color: var(--green); color: var(--green2); }
+.mark-done-btn.done { border-color: var(--green); color: var(--green2); background: rgba(63,185,80,.08); }
+
+.lesson-meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 14px 40px 10px; max-width: 900px; margin: 0 auto;
+}
+.lesson-meta-tag {
+  font-family: var(--mono); font-size: 10px; padding: 2px 9px; border-radius: 4px;
+  border: 1px solid;
+}
+.meta-level  { color: var(--yellow); border-color: rgba(227,179,65,.3); background: rgba(227,179,65,.07); }
+.meta-prereq { color: var(--blue2); border-color: rgba(88,166,255,.25); background: rgba(88,166,255,.06); }
+.meta-learn  { color: var(--purple2); border-color: rgba(188,140,255,.25); background: rgba(188,140,255,.06); }
+
+.lesson-content-wrap { max-width: 900px; margin: 0 auto; }
+.doc-content { padding: 12px 40px 60px; }
+.doc-content h1 { font-family: var(--sans); font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.doc-content h2 { font-family: var(--sans); font-size: 15px; font-weight: 700; color: var(--text); margin: 24px 0 9px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.doc-content h3 { font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--blue2); margin: 18px 0 7px; }
+.doc-content p { font-size: 13px; color: var(--text); line-height: 1.7; margin-bottom: 11px; }
+.doc-content a { color: var(--blue); text-decoration: none; }
+.doc-content a:hover { text-decoration: underline; }
+.doc-content strong { color: var(--yellow2); font-weight: 600; }
+.doc-content em { color: var(--purple2); }
+.doc-content code { font-family: var(--mono); font-size: 11.5px; background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: var(--cyan); }
+.doc-content pre { background: var(--bg1); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; margin: 12px 0; overflow-x: auto; }
+.doc-content pre code { background: none; border: none; padding: 0; color: var(--text); font-size: 11.5px; line-height: 1.6; }
+.doc-content ul, .doc-content ol { padding-left: 22px; margin-bottom: 11px; }
+.doc-content li { font-size: 13px; margin-bottom: 4px; }
+.doc-content blockquote { border-left: 3px solid var(--yellow); padding: 8px 14px; margin: 12px 0; background: rgba(227,179,65,.06); border-radius: 0 4px 4px 0; color: var(--dim); }
+.doc-content table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.doc-content th { background: var(--bg3); padding: 7px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); border: 1px solid var(--border); }
+.doc-content td { padding: 6px 12px; border: 1px solid var(--border); font-size: 12px; }
+.doc-content tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+.doc-content hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+@media (max-width: 768px) {
+  .learn-sidebar { display: none; }
+  .learn-hero-wrap { padding: 20px 16px 16px; }
+  .levels-wrap { padding: 0 16px 32px; }
+  .lesson-meta { padding: 12px 16px 8px; }
+  .doc-content { padding: 10px 16px 40px; }
+  .lesson-done-bar { padding: 7px 16px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="header">
+    <div style="display:flex;align-items:center;gap:0">
+      <div class="hamburger" id="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
+      <div class="logo-wrap">
+        <div class="logo-glyph">N</div>
+        <div class="logo-text-block">
+          <a class="logo-name" href="index.html">NEODAX</a>
+          <span class="logo-ver">v1.0.8 · LEARNING PATH</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <nav class="header-nav">
+        <a class="header-nav-link" href="index.html">Home</a>
+        <a class="header-nav-link" href="docs.html">Docs</a>
+        <a class="header-nav-link active" href="learn.html">Learn</a>
+      </nav>
+      <span class="header-badge mono" style="color:var(--yellow)">68 Lessons</span>
+      <span class="header-badge">8 Levels</span>
+    </div>
+  </header>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <div class="learn-layout">
+    <nav class="learn-sidebar" id="sidebar">
+      <div class="search-box"><input class="search-input" type="text" placeholder="search lessons..." id="searchInput" oninput="filterLessons(this.value)"></div>
+      <div class="sidebar-section-header">Navigation</div>
+      <a class="nav-item" href="index.html" onclick="onNavClick()"><span class="nav-icon">◈</span> Home</a>
+      <a class="nav-item" href="docs.html" onclick="onNavClick()"><span class="nav-icon">◧</span> Documentation</a>
+      <a class="nav-item active" href="learn.html" onclick="showIndex();onNavClick()"><span class="nav-icon">⬡</span> Learning Path</a>
+      <div class="sidebar-section-header">Levels</div>
+      <a class="nav-item" onclick="scrollToLevel(0);onNavClick()" href="javascript:void(0)"><span class="nav-icon">◈</span> L0 — Foundation</a>
+      <a class="nav-item" onclick="scrollToLevel(1);onNavClick()" href="javascript:void(0)"><span class="nav-icon">⊕</span> L1 — Basic Analysis</a>
+      <a class="nav-item" onclick="scrollToLevel(2);onNavClick()" href="javascript:void(0)"><span class="nav-icon">◧</span> L2 — Intermediate</a>
+      <a class="nav-item" onclick="scrollToLevel(3);onNavClick()" href="javascript:void(0)"><span class="nav-icon">⬡</span> L3 — JavaScript API</a>
+      <a class="nav-item" onclick="scrollToLevel(4);onNavClick()" href="javascript:void(0)"><span class="nav-icon">◉</span> L4 — Advanced</a>
+      <a class="nav-item" onclick="scrollToLevel(5);onNavClick()" href="javascript:void(0)"><span class="nav-icon">φ</span> L5 — Symbolic Exec</a>
+      <a class="nav-item" onclick="scrollToLevel(6);onNavClick()" href="javascript:void(0)"><span class="nav-icon">▷</span> L6 — Real World RE</a>
+      <a class="nav-item" onclick="scrollToLevel(7);onNavClick()" href="javascript:void(0)"><span class="nav-icon">∑</span> L7 — Automation</a>
+      <a class="nav-item" onclick="scrollToLevel(8);onNavClick()" href="javascript:void(0)"><span class="nav-icon">◈</span> Appendix</a>
+      <div class="sidebar-footer">NeoDAX v1.0.8<br>68 lessons · 8 levels<br>Apache 2.0</div>
+    </nav>
+
+    <main class="learn-main" id="mainContent">
+      <!-- INDEX VIEW -->
+      <div id="indexView">
+        <div class="learn-hero-wrap">
+          <div class="learn-hero-top">
+            <div class="lh-glyph">⬡</div>
+            <div>
+              <div class="lh-title">LEARNING PATH</div>
+              <div class="lh-sub">68 LESSONS · 8 LEVELS · ZERO TO ADVANCED</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span class="pill pill-ver">Foundation</span>
+                <span class="pill pill-arch">JavaScript API</span>
+                <span class="pill pill-fmt">Symbolic Exec</span>
+                <span class="pill pill-green">Real World RE</span>
+              </div>
+            </div>
+          </div>
+          <div class="progress-card">
+            <div class="progress-top">
+              <span class="progress-title">Progress</span>
+              <span class="progress-stat"><span id="progressDone">0</span> / 68 lessons — <span id="progressPct">0</span>%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+            <a class="progress-reset" onclick="resetProgress()" href="javascript:void(0)">reset progress</a>
+          </div>
+        </div>
+        <div class="levels-wrap" id="levelsWrap"></div>
+        <div style="max-width:860px;margin:0 auto;padding:0 40px" id="learn-footer-wrap"></div>
+      </div>
+
+      <!-- LESSON VIEWER -->
+      <div id="lessonView" style="display:none">
+        <div class="lesson-topbar" id="lessonTopbar">
+          <a href="index.html">HOME</a>
+          <span class="sep">›</span>
+          <span onclick="showIndex()" style="cursor:pointer">LEARN</span>
+          <span class="sep">›</span>
+          <span id="lessonBreadcrumb" style="color:var(--yellow)">Lesson</span>
+          <div class="lesson-nav-btns">
+            <button class="lesson-nav-btn" id="btnPrev" onclick="prevLesson()">← Prev</button>
+            <button class="lesson-nav-btn" id="btnNext" onclick="nextLesson()">Next →</button>
+          </div>
+        </div>
+        <div class="lesson-done-bar">
+          <span class="lesson-level-lbl" id="lessonLevelLabel">Level 0</span>
+          <button class="mark-done-btn" id="markDoneBtn" onclick="toggleDone()">Mark as Complete</button>
+        </div>
+        <div class="lesson-meta" id="lessonMeta"></div>
+        <div class="lesson-content-wrap">
+          <div class="doc-content" id="lessonContent"></div>
+        </div>
+        <div id="lesson-footer-wrap"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script src="lessons.js"></script>
+<script>
+const STORAGE_KEY = 'neodax_progress';
+let progress = {};
+try { progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) {}
+function saveProgress() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch(e) {} }
+function isDone(id) { return !!progress[id]; }
+function setDone(id, v) { progress[id] = v; saveProgress(); updateProgress(); }
+
+function updateProgress() {
+  const done = lessons.filter(l => isDone(l.id)).length;
+  const total = lessons.length;
+  const pct = Math.round(done / total * 100);
+  const f = document.getElementById('progressFill');
+  const d = document.getElementById('progressDone');
+  const p = document.getElementById('progressPct');
+  const l = document.getElementById('progressLabel');
+  if (f) f.style.width = pct + '%';
+  if (d) d.textContent = done;
+  if (p) p.textContent = pct;
+  if (l) l.textContent = done + ' / ' + total + ' complete';
+}
+
+function resetProgress() {
+  if (!confirm('Reset all progress?')) return;
+  progress = {}; saveProgress(); renderIndex(); updateProgress();
+}
+
+let currentIdx = 0;
+
+function filterLessons(q) {
+  q = (q || '').toLowerCase().trim();
+  if (document.getElementById('indexView').style.display !== 'none') renderIndex(q);
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+}
+
+function renderIndex(searchQ = '') {
+  const wrap = document.getElementById('levelsWrap');
+  if (!wrap) return;
+  const levelNums = [...new Set(lessons.map(l => l.level))].sort((a,b)=>a-b);
+  let html = '';
+  for (const lv of levelNums) {
+    const lvLessons = searchQ
+      ? lessons.filter(l => l.level === lv && (l.title.toLowerCase().includes(searchQ) || l.content.toLowerCase().includes(searchQ)))
+      : lessons.filter(l => l.level === lv);
+    if (!lvLessons.length) continue;
+    const lvInfo = levels[lv] || { name: 'Level ' + lv, icon: '◈' };
+    const doneCount = lvLessons.filter(l => isDone(l.id)).length;
+    const pct = Math.round(doneCount / lvLessons.length * 100);
+    html += `<div class="level-block" id="level-block-${lv}">
+      <div class="level-header" onclick="toggleLevel(${lv})">
+        <span class="level-icon">${lvInfo.icon}</span>
+        <span class="level-name">Level ${lv === 9 ? 'App' : lv} — ${lvInfo.name}</span>
+        <span class="level-progress-mini">${doneCount}/${lvLessons.length}</span>
+        <span class="level-pct">${pct}%</span>
+        <span class="level-chevron">▾</span>
+      </div>
+      <div class="lesson-list" id="level-list-${lv}">`;
+    for (const les of lvLessons) {
+      const done = isDone(les.id);
+      const globalIdx = lessons.indexOf(les);
+      html += `<div class="lesson-item${done ? ' done' : ''}" onclick="openLesson(${globalIdx})">
+        <span class="lesson-num">${String(les.num).padStart(2,'0')}</span>
+        <span class="lesson-check">${done ? '✓' : ''}</span>
+        <span class="lesson-title">${les.title}</span>
+        <span class="lesson-tag">L${les.level}</span>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+  wrap.innerHTML = html;
+  updateProgress();
+  const fw = document.getElementById('learn-footer-wrap');
+  if (fw && !fw.querySelector('.site-footer')) fw.innerHTML = renderFooter();
+}
+
+function toggleLevel(lv) {
+  const block = document.getElementById('level-block-' + lv);
+  const list  = document.getElementById('level-list-' + lv);
+  if (!block || !list) return;
+  if (block.classList.contains('collapsed')) {
+    block.classList.remove('collapsed'); list.style.display = '';
+  } else {
+    block.classList.add('collapsed'); list.style.display = 'none';
+  }
+}
+
+function scrollToLevel(lv) {
+  showIndex();
+  setTimeout(() => {
+    const el = document.getElementById('level-block-' + lv);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
+function openLesson(idx) {
+  currentIdx = idx;
+  const les = lessons[idx];
+  if (!les) return;
+  document.getElementById('indexView').style.display = 'none';
+  document.getElementById('lessonView').style.display = 'block';
+  document.getElementById('lessonBreadcrumb').textContent = les.title;
+  const lvInfo = levels[les.level] || { name: 'Level ' + les.level };
+  document.getElementById('lessonLevelLabel').textContent =
+    `Level ${les.level} — ${lvInfo.name}  ·  ${idx + 1} of ${lessons.length}`;
+  let metaHtml = `<span class="lesson-meta-tag meta-level">Level ${les.level} · ${lvInfo.name}</span>`;
+  if (les.prereq) metaHtml += `<span class="lesson-meta-tag meta-prereq">Prereq: ${les.prereq}</span>`;
+  if (les.learn)  metaHtml += `<span class="lesson-meta-tag meta-learn">${les.learn}</span>`;
+  document.getElementById('lessonMeta').innerHTML = metaHtml;
+  let content = les.content;
+  content = content.replace(/\*\*Level:\*\*.*\n?/g, '');
+  content = content.replace(/\*\*Prerequisites:\*\*.*\n?/g, '');
+  content = content.replace(/\*\*What You Will Learn:\*\*.*\n?/g, '');
+  document.getElementById('lessonContent').innerHTML = marked.parse(content);
+  updateDoneBtn();
+  document.getElementById('btnPrev').disabled = idx === 0;
+  document.getElementById('btnNext').disabled = idx === lessons.length - 1;
+  const lfw = document.getElementById('lesson-footer-wrap');
+  if (lfw && !lfw.querySelector('.site-footer')) lfw.innerHTML = renderFooter();
+  document.getElementById('mainContent').scrollTop = 0;
+}
+
+function updateDoneBtn() {
+  const les = lessons[currentIdx];
+  const btn = document.getElementById('markDoneBtn');
+  if (!les || !btn) return;
+  if (isDone(les.id)) { btn.textContent = '✓ Completed'; btn.classList.add('done'); }
+  else { btn.textContent = 'Mark as Complete'; btn.classList.remove('done'); }
+}
+
+function toggleDone() {
+  const les = lessons[currentIdx];
+  if (!les) return;
+  setDone(les.id, !isDone(les.id));
+  updateDoneBtn();
+  renderIndex();
+}
+
+function prevLesson() { if (currentIdx > 0) openLesson(currentIdx - 1); }
+
+function nextLesson() {
+  if (currentIdx < lessons.length - 1) {
+    const les = lessons[currentIdx];
+    if (les && !isDone(les.id)) setDone(les.id, true);
+    openLesson(currentIdx + 1);
+  }
+}
+
+function showIndex() {
+  document.getElementById('indexView').style.display = 'block';
+  document.getElementById('lessonView').style.display = 'none';
+  document.getElementById('mainContent').scrollTop = 0;
+  renderIndex();
+}
+
+renderIndex();
+updateProgress();
+</script>
+</body>
+</html>
