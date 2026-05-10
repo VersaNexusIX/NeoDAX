@@ -121,10 +121,12 @@ jobs:
           echo "Note: darwin-x64 not included — Intel Mac users compile from source via npm install"
       - name: Publish to npm
         if: ${{ inputs.dry_run != 'true' }}
-        run: npm publish --access public --provenance
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > js/.npmrc
+          npm publish --access public --provenance
         working-directory: js
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Dry run summary
         if: ${{ inputs.dry_run == 'true' }}
         run: echo "Dry run complete — all prebuilds verified. Not publishing."
