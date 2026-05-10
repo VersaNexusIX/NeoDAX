@@ -202,7 +202,7 @@ node js/server/server.js
 # PORT=8080 node js/server/server.js
 ```
 
-Default port **7070**  -  Web UI at `http://localhost:7070/ui`
+Default port **7070**  -  Web UI at `https://neo-dax.vercel.app`
 
 All endpoints: `POST` with `Content-Type: application/json` and `{ "file": "/absolute/path" }`.
 

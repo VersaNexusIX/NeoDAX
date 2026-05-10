@@ -1,7 +1,7 @@
 {
   "name": "neodax",
   "version": "1.1.1",
-  "description": "NeoDAX — binary analysis, disassembler, CFG, symbolic execution, decompiler. x86-64 · AArch64 · RISC-V. Zero external dependencies.",
+  "description": "NeoDAX \u2014 binary analysis, disassembler, CFG, symbolic execution, decompiler. x86-64 \u00b7 AArch64 \u00b7 RISC-V. Zero external dependencies.",
   "main": "index.js",
   "types": "index.d.ts",
   "repository": {
