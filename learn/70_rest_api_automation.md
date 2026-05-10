@@ -25,7 +25,7 @@ PORT=9000 node js/server/server.js
 HOST=0.0.0.0 PORT=9000 node js/server/server.js
 ```
 
-The web UI is available at `http://localhost:7070/ui`.
+The web UI is available at `https://neo-dax.vercel.app`.
 
 ## All API Endpoints
 

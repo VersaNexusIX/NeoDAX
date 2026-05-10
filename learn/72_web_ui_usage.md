@@ -4,13 +4,18 @@
 **Prerequisites:** 71_building_analysis_scripts.md
 **What You Will Learn:** How to use the NeoDAX web interface for interactive binary exploration.
 
-## Starting the UI
+## Accessing the UI
+
+The NeoDAX web interface is hosted at **[neo-dax.vercel.app](https://neo-dax.vercel.app)** — no local server needed for the UI itself.
+
+For REST API access (loading your own binaries), start the local server:
 
 ```bash
 node js/server/server.js
+# API available at http://localhost:7070
 ```
 
-Then open `http://localhost:7070/ui` in a browser. The port is configurable in `config.dax-ng` under `[server]`.
+The port is configurable in `config.dax-ng` under `[server]`.
 
 ## Layout
 
