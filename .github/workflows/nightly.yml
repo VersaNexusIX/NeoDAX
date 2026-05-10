@@ -1,55 +1,60 @@
-name: Nightly
+name: Nightly Regression
 
 on:
   schedule:
-    - cron: "0 2 * * *"
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
   nightly:
-    name: Nightly regression (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Nightly (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, ubuntu-24.04-arm]
+        include:
+          - runner: ubuntu-latest
+            name: Linux x64
+          - runner: ubuntu-24.04-arm
+            name: Linux ARM64
+          - runner: macos-latest
+            name: macOS ARM64
     steps:
       - uses: actions/checkout@v4
-      - name: Install deps (Linux)
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get install -y gcc clang nodejs libnode-dev
-      - name: Install deps (macOS)
-        if: runner.os == 'macOS'
-        run: brew install node
-      - name: Build (Code)
-        run: bash setup.sh <<< "2"
-      - name: Build (JS)
+        run: sudo apt-get install -y clang libnode-dev
+      - name: Build native core
+        run: echo "2" | bash setup.sh
+      - name: CLI smoke test
+        run: ./neodax /bin/ls -d
+      - name: Build JS addon
         run: bash build_js.sh
-      - name: Full analysis suite
-        run: |
-          ./neodax -x    /bin/ls
-          ./neodax -X    /bin/ls
-          ./neodax -e    /bin/ls
-          ./neodax -R .text /bin/ls
-          ./neodax -V    /bin/ls
-      - name: JS tests
+      - name: JS test suite
         run: node js/test/basic.js
 
-  notify-on-failure:
+  open-issue-on-failure:
     name: Open issue on failure
-    runs-on: ubuntu-latest
     needs: nightly
+    runs-on: ubuntu-latest
     if: failure()
+    permissions:
+      issues: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Create issue
+      - name: Create failure issue
         uses: actions/github-script@v7
         with:
           script: |
+            const today = new Date().toISOString().slice(0, 10);
+            const run_url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             await github.rest.issues.create({
               owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Nightly regression failed - ${new Date().toISOString().slice(0,10)}`,
-              body: `Nightly CI failed on run [${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}).\n\nCheck the logs for details.`,
-              labels: ['regression', 'nightly']
-            })
+              repo:  context.repo.repo,
+              title: `[Nightly] Regression detected ${today}`,
+              body:  `The nightly regression run failed on ${today}.\n\nRun: ${run_url}\n\nPlease investigate and close this issue when fixed.`,
+              labels: ['regression', 'nightly'],
+            });

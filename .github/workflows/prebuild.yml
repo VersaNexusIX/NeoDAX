@@ -1,46 +1,46 @@
-name: Prebuild
+name: Build Prebuilds
 
 on:
   workflow_dispatch:
-    inputs:
-      upload:
-        description: "Upload artifacts to GitHub Release (requires tag)"
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   prebuild:
-    name: Prebuild (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
+    name: Prebuild ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         include:
-          - target: linux-x64
-            os: ubuntu-latest
-          - target: linux-arm64
-            os: ubuntu-24.04-arm
-          - target: darwin-arm64
-            os: macos-latest
-          - target: darwin-x64
-            os: macos-13
+          - runner: ubuntu-latest
+            target: linux-x64
+            filename: neodax-linux-x64.node
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
+            filename: neodax-linux-arm64.node
+          - runner: macos-latest
+            target: darwin-arm64
+            filename: neodax-darwin-arm64.node
+          - runner: macos-13
+            target: darwin-x64
+            filename: neodax-darwin-x64.node
     steps:
       - uses: actions/checkout@v4
-      - name: Install deps (Linux)
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get install -y gcc nodejs libnode-dev
-      - name: Install deps (macOS)
-        if: runner.os == 'macOS'
-        run: brew install node
+        run: sudo apt-get install -y clang libnode-dev
       - name: Build JS addon
         run: bash build_js.sh
-      - name: Stage
+      - name: Stage prebuild
         run: |
           mkdir -p js/prebuilds
-          cp js/neodax.node js/prebuilds/neodax-${{ matrix.target }}.node
+          cp js/neodax.node js/prebuilds/${{ matrix.filename }}
+          echo "Prebuild: js/prebuilds/${{ matrix.filename }} ($(du -sh js/prebuilds/${{ matrix.filename }} | cut -f1))"
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: prebuild-${{ matrix.target }}
-          path: js/prebuilds/neodax-${{ matrix.target }}.node
+          path: js/prebuilds/${{ matrix.filename }}
           retention-days: 30
