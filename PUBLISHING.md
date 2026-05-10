@@ -186,11 +186,10 @@ neodax/
 │   ├── install.js    postinstall build script
 │   └── build.js      npm run build
 ├── server/
-│   ├── server.js     REST API server
-│   └── ui.html       Web UI
+│   └── server.js     REST API server (26 endpoints at http://localhost:7070)
 ├── examples/         6 example scripts
 ├── src/              C source for native addon
-└── prebuilds/        Pre-compiled .node files (4 platforms)
+└── prebuilds/        Pre-compiled .node files (3 platforms)
 ```
 
 The C source (`src/`) is included so users can compile on unsupported platforms.

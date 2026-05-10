@@ -378,7 +378,7 @@ mode_learn() {
     sep; blank
 
     pick_option "Select interface" \
-        "GUI  --  Open web browser  (served from ./web/)" \
+        "GUI  --  Open neo-dax.vercel.app/learning/ in browser" \
         "CLI  --  Terminal lessons  (markdown in ./learn/)"
 
     case "$PICKED" in
@@ -392,93 +392,22 @@ learn_gui() {
     printf "  ${YELLOW}${BOLD}Learn / GUI Mode${RESET}\n"
     sep; blank
 
-    if ! command -v node >/dev/null 2>&1; then
-        err "node not found. Install Node.js first."
-        case "$OS_KIND" in
-            android) info "On Termux:  pkg install nodejs" ;;
-            linux)   info "On Debian/Ubuntu:  apt install nodejs" ;;
-            darwin)  info "On macOS:  brew install node" ;;
-        esac
-        exit 1
-    fi
-
-    PORT="${NEODAX_PORT:-7474}"
-    if command -v ss >/dev/null 2>&1; then
-        while ss -tlnp 2>/dev/null | grep -q ":${PORT} "; do PORT=$(( PORT + 1 )); done
-    elif command -v lsof >/dev/null 2>&1; then
-        while lsof -i ":${PORT}" >/dev/null 2>&1; do PORT=$(( PORT + 1 )); done
-    fi
-
-    # Resolve a writable directory that works on Android/Termux (no /tmp/ write access on non-root)
-    NEODAX_CACHE_DIR="$(pwd)/.neodax_cache"
-    mkdir -p "$NEODAX_CACHE_DIR" 2>/dev/null || NEODAX_CACHE_DIR="$HOME/.cache/neodax" && mkdir -p "$NEODAX_CACHE_DIR" 2>/dev/null
-    SRV_SCRIPT="$NEODAX_CACHE_DIR/_learn_srv.js"
-
-    cat > "$SRV_SCRIPT" << 'JSEOF'
-const http = require('http');
-const fs   = require('fs');
-const path = require('path');
-const WEB_DIR = process.argv[2] || './web';
-const PORT    = parseInt(process.argv[3] || '7474', 10);
-const MIME = {
-    '.html': 'text/html; charset=utf-8', '.js': 'application/javascript',
-    '.css': 'text/css', '.json': 'application/json', '.png': 'image/png',
-    '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.svg': 'image/svg+xml',
-};
-const server = http.createServer((req, res) => {
-    let url = req.url.split('?')[0];
-    if (url === '/' || url === '') url = '/learn.html';
-    const filepath = path.join(WEB_DIR, url);
-    fs.readFile(filepath, (err, data) => {
-        if (err) {
-            fs.readFile(path.join(WEB_DIR, 'learn.html'), (e2, d2) => {
-                if (e2) { res.writeHead(404); res.end('Not found'); return; }
-                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end(d2);
-            });
-            return;
-        }
-        const ext = path.extname(filepath).toLowerCase();
-        res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-        res.end(data);
-    });
-});
-server.listen(PORT, '127.0.0.1', () => {
-    process.stdout.write('NEODAX_SERVER_READY ' + PORT + '\n');
-});
-process.on('SIGINT',  () => { server.close(); process.exit(0); });
-process.on('SIGTERM', () => { server.close(); process.exit(0); });
-JSEOF
-
-    info "Starting learn server on port ${PORT} ..."
-    node "$SRV_SCRIPT" "$(pwd)/web" "$PORT" &
-    SRV_PID=$!
-
-    READY=no
-    for _ in 1 2 3 4 5; do
-        sleep 1
-        if kill -0 "$SRV_PID" 2>/dev/null; then READY=yes; break; fi
-    done
-    if [ "$READY" = no ]; then err "Server failed to start."; exit 1; fi
-
-    URL="http://127.0.0.1:${PORT}/learn.html"
+    URL="https://neo-dax.vercel.app/learning/"
     blank; sep
     printf "${GREEN}${BOLD}\n"
     printf '  ╔══════════════════════════════════════════════╗\n'
-    printf '  ║  Learn server running                        ║\n'
+    printf '  ║  Opening NeoDAX Learning in your browser     ║\n'
     printf '  ║                                              ║\n'
     printf "  ║  %-44s║\n" "$URL"
     printf '  ║                                              ║\n'
-    printf '  ║  Open the URL above in your browser.         ║\n'
-    printf '  ║  Press Ctrl+C to stop the server.            ║\n'
     printf '  ╚══════════════════════════════════════════════╝\n'
     printf '%s\n' "${RESET}"
 
-    if command -v xdg-open    >/dev/null 2>&1; then xdg-open    "$URL" 2>/dev/null & fi
-    if command -v termux-open >/dev/null 2>&1; then termux-open "$URL" 2>/dev/null & fi
+    if command -v xdg-open    >/dev/null 2>&1; then xdg-open    "$URL" 2>/dev/null; fi
+    if command -v termux-open >/dev/null 2>&1; then termux-open "$URL" 2>/dev/null; fi
+    if command -v open        >/dev/null 2>&1; then open        "$URL" 2>/dev/null; fi
 
-    wait "$SRV_PID" 2>/dev/null || true
-    blank; ok "Server stopped."
+    ok "If the browser did not open, visit: $URL"
 }
 
 learn_cli() {

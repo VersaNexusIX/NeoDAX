@@ -452,7 +452,7 @@ All analysis modules now support RISC-V RV64GC (base + M + A + F + D + C extensi
 ### Changed - License
 
 - Relicensed from MIT to **Apache 2.0**. See `LICENSE` for full terms.
-- Updated `package.json`, `js/package.json`, `README.md`, `CONTRIBUTING.md`, `web/shared.js`, `web/index.html`, `web/docs.html` to reflect the new license.
+- Updated `package.json`, `js/package.json`, `README.md`, `CONTRIBUTING.md`, `neo-dax.vercel.app`, `neo-dax.vercel.app`, `neo-dax.vercel.app` to reflect the new license.
 
 ### Fixed - DAXC Format (`src/daxc.c`)
 
@@ -492,7 +492,7 @@ All analysis modules now support RISC-V RV64GC (base + M + A + F + D + C extensi
 - `learn/INDEX.md` - Updated file count to 68.
 - `API.md` - Added Apache 2.0 license note, fixed `DAX_VERSION` to `1.0.8`, rewrote Snapshot section.
 - `CLI_REFERENCE.md` - Updated `-o` and `-c` flag descriptions.
-- All `web/*.html`, `web/shared.js`, `js/index.d.ts`, `README.md`, `CONTRIBUTING.md`, `FAQ.md`, `BUILDING.md` - version and license updated.
+- All `neo-dax.vercel.app`, `neo-dax.vercel.app`, `js/index.d.ts`, `README.md`, `CONTRIBUTING.md`, `FAQ.md`, `BUILDING.md` - version and license updated.
 
 ---
 

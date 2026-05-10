@@ -339,7 +339,7 @@ createServer({ port: 8080 });
 
 All endpoints: `POST /api/<name>` with `{ "file": "/absolute/path" }` - see `js/README.md` for the full list.
 
-Web UI: `http://localhost:7070/ui`
+Web UI: `https://neo-dax.vercel.app`
 
 ---
 

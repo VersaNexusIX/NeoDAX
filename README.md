@@ -153,9 +153,13 @@ See [NPM_USAGE.md](NPM_USAGE.md) for Express, Fastify, Docker, and TypeScript ex
 
 ## Web UI
 
+Visit **[neo-dax.vercel.app](https://neo-dax.vercel.app)** — no installation needed.
+
+For REST API integration with your own binaries, start the local server:
+
 ```bash
 node js/server/server.js
-# → http://localhost:7070/ui
+# API available at http://localhost:7070
 ```
 
 16 analysis panels: Overview · Sections · Symbols · Functions · CFG Blocks · Xrefs · Strings · Unicode · Disassembly · Decompiler · NR (NeoDAX Representation) · Symbolic Execution · Emulator · Entropy · Recursive Descent · Validity Filter
