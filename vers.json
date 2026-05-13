@@ -1,0 +1,12 @@
+{
+  "nama": "neodax",
+  "versi": "1.1.1",
+  "developer": "versanexusix",
+  "email": "besoklibur457@gmail.com",
+  "lisensi": "Apache-2.0",
+  "description": "mobile first binary analysis framework",
+  "homepage": "https://neo-dax.vercel.app/",
+  "keywords": "neodax",
+  "type": "mixed",
+  "entry": "Makefile"
+}
