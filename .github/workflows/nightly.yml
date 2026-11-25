@@ -1,0 +1,60 @@
+name: Nightly Regression
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    name: Nightly (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            name: Linux x64
+          - runner: ubuntu-24.04-arm
+            name: Linux ARM64
+          - runner: macos-latest
+            name: macOS ARM64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y clang libnode-dev
+      - name: Build native core
+        run: echo "2" | bash setup.sh
+      - name: CLI smoke test
+        run: ./neodax /bin/ls -d
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: JS test suite
+        run: node js/test/basic.js
+
+  open-issue-on-failure:
+    name: Open issue on failure
+    needs: nightly
+    runs-on: ubuntu-latest
+    if: failure()
+    permissions:
+      issues: write
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            const run_url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              title: `[Nightly] Regression detected ${today}`,
+              body:  `The nightly regression run failed on ${today}.\n\nRun: ${run_url}\n\nPlease investigate and close this issue when fixed.`,
+              labels: ['regression', 'nightly'],
+            });

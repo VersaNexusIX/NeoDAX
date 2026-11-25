@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New version number (e.g. 1.2.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Pre-release suffix (e.g. beta.1) — leave empty for stable'
+        required: false
+        type: string
+
+jobs:
+  bump:
+    name: Bump version to ${{ inputs.version }}${{ inputs.prerelease && format('-{0}', inputs.prerelease) || '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute full version string
+        id: ver
+        run: |
+          BASE="${{ inputs.version }}"
+          PRE="${{ inputs.prerelease }}"
+          FULL="${BASE}${PRE:+-$PRE}"
+          echo "full=$FULL" >> $GITHUB_OUTPUT
+          echo "Version: $FULL"
+
+      - name: Update js/package.json
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = require('./js/package.json');
+            p.version = '${{ steps.ver.outputs.full }}';
+            fs.writeFileSync('./js/package.json', JSON.stringify(p, null, 2) + '\n');
+          "
+
+      - name: Update version in setup.sh banner
+        run: |
+          sed -i "s/Version     v[0-9][0-9.a-z-]*/Version     v${{ steps.ver.outputs.full }}/" setup.sh
+
+      - name: Commit and tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add js/package.json setup.sh
+          git commit -m "chore: bump version to ${{ steps.ver.outputs.full }}"
+          git tag "v${{ steps.ver.outputs.full }}"
+          git push origin HEAD
+          git push origin "v${{ steps.ver.outputs.full }}"
