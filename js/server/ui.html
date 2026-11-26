@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeoDAX v1.2.0 Binary Analysis — David Daryanto | VersaNexusIX</title>
+<meta name="description" content="NeoDAX v1.2.0 industrial binary analysis workbench for x86-64, AArch64, and RISC-V with disassembly, CFG, decompiler, emulator, and obfuscation scoring.">
+<meta name="robots" content="index, follow">
+<meta name="googlebot" content="index, follow">
+<meta name="theme-color" content="#0D0D0D">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://neo-dax.vercel.app/ui">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VersaNexusIX">
+<meta property="og:title" content="NeoDAX v1.2.0 Binary Analysis — David Daryanto | VersaNexusIX">
+<meta property="og:description" content="NeoDAX v1.2.0 binary analysis workbench for ELF, PE, and Mach-O with disassembler, CFG, decompiler, and emulator.">
+<meta property="og:url" content="https://neo-dax.vercel.app/ui">
+<meta property="og:image" content="/api/og/banner.jpg">
+<meta property="og:image:secure_url" content="https://neo-dax.vercel.app/api/og/banner.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NeoDAX v1.2.0 Binary Analysis — David Daryanto | VersaNexusIX">
+<meta name="twitter:description" content="NeoDAX v1.2.0 binary analysis workbench for ELF, PE, and Mach-O with disassembler, CFG, decompiler, and emulator.">
+<meta name="twitter:image" content="/api/og/banner.jpg">
+<script type="application/ld+json" nonce="__CSP_NONCE__">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": "https://daviddaryanto.my.id/#person",
+      "name": "David Daryanto",
+      "alternateName": "VersaNexusIX",
+      "url": "https://daviddaryanto.my.id"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://neo-dax.vercel.app/#website",
+      "name": "NeoDAX",
+      "url": "https://neo-dax.vercel.app",
+      "publisher": { "@id": "https://daviddaryanto.my.id/#person" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "NeoDAX",
+      "softwareVersion": "1.2.0",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Linux, macOS, Android",
+      "author": { "@id": "https://daviddaryanto.my.id/#person" }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "VersaNexusIX", "item": "https://daviddaryanto.my.id" },
+        { "@type": "ListItem", "position": 2, "name": "NeoDAX Workbench", "item": "https://neo-dax.vercel.app/ui" }
+      ]
+    }
+  ]
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style nonce="__CSP_NONCE__">
+:root {
+  --bg: #0D0D0D;
+  --surface: #111111;
+  --panel: #141414;
+  --rule: #242424;
+  --paper: #F2F2EE;
+  --steel: #8A8A85;
+  --acid: #CCFF00;
+  --critical: #FF3B30;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --font-pixel: "Silkscreen", "IBM Plex Mono", monospace;
+  --font-body: "Plus Jakarta Sans", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+*:not(.status-dot) { border-radius: 0 !important; }
+*, *::before, *::after { box-shadow: none !important; text-shadow: none !important; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow: hidden;
+}
+
+::selection { background: var(--acid); color: var(--bg); }
+:focus-visible { outline: 1px solid var(--acid); outline-offset: 3px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--rule); }
+::-webkit-scrollbar-thumb:hover { background: var(--steel); }
+
+.font-pixel { font-family: var(--font-pixel); }
+.font-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.hidden { display: none !important; }
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50% !important;
+  background: var(--acid);
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.idle { background: var(--steel); }
+.status-dot.ok { background: var(--acid); }
+.status-dot.busy { background: var(--acid); animation: pixel-blink 600ms steps(2, end) infinite; }
+.status-dot.err { background: var(--critical); }
+
+.pixel-frame {
+  clip-path: polygon(
+    0 4px, 4px 4px, 4px 0,
+    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+}
+
+.pixel-reticle { position: relative; }
+.pixel-reticle::before,
+.pixel-reticle::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms steps(3, end), transform 180ms steps(3, end);
+}
+.pixel-reticle::before {
+  top: 6px;
+  left: 6px;
+  border-top: 2px solid var(--acid);
+  border-left: 2px solid var(--acid);
+  transform: translate3d(4px, 4px, 0);
+}
+.pixel-reticle::after {
+  right: 6px;
+  bottom: 6px;
+  border-right: 2px solid var(--acid);
+  border-bottom: 2px solid var(--acid);
+  transform: translate3d(-4px, -4px, 0);
+}
+.pixel-reticle:hover::before,
+.pixel-reticle:hover::after { opacity: 1; transform: translate3d(0, 0, 0); }
+
+.pixel-flame, .pixel-flame-tab { position: relative; overflow: hidden; isolation: isolate; }
+.pixel-flame::before, .pixel-flame-tab::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(0deg, rgba(204, 255, 0, 0.32) 0%, rgba(164, 255, 0, 0.12) 44%, transparent 82%),
+    repeating-linear-gradient(90deg, rgba(204, 255, 0, 0.55) 0 4px, transparent 4px 10px, rgba(242, 242, 238, 0.32) 10px 14px, transparent 14px 20px);
+  background-size: 100% 100%, 40px 10px;
+  background-position: 0 100%, 0 100%;
+  background-repeat: no-repeat, repeat-x;
+  transition: opacity 160ms steps(3, end);
+}
+.pixel-flame:hover::before, .pixel-flame:focus-visible::before,
+.pixel-flame-tab:hover::before, .pixel-flame-tab:focus-visible::before {
+  opacity: 1;
+  animation: pixel-flame-rise 420ms steps(4, end) infinite;
+}
+
+@keyframes pixel-flame-rise {
+  0%   { background-position: 0 100%, 0 100%; transform: translate3d(0, 2px, 0); }
+  33%  { background-position: 0 92%, 10px 84%; transform: translate3d(0, 0, 0); }
+  66%  { background-position: 0 96%, 20px 72%; transform: translate3d(0, -1px, 0); }
+  100% { background-position: 0 100%, 40px 100%; transform: translate3d(0, 2px, 0); }
+}
+
+@keyframes pixel-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+@keyframes panel-reveal {
+  from { opacity: 0; transform: translate3d(0, 4px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.site-frame {
+  max-width: 1400px;
+  width: 100%;
+  height: 100vh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  background: var(--bg);
+  position: relative;
+}
+
+.load-progress {
+  position: absolute;
+  top: 63px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--acid);
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 220ms var(--ease);
+  z-index: 50;
+}
+
+.topbar {
+  height: 64px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  background: var(--acid);
+  color: var(--bg);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.brand-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand-name {
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  color: var(--paper);
+  letter-spacing: 0.06em;
+}
+
+.brand-ver {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--steel);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.file-bar {
+  flex: 1;
+  min-width: 180px;
+  height: 40px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  transition: border-color 160ms var(--ease);
+}
+
+.file-bar:focus-within { border-color: var(--acid); }
+
+.prompt-sig {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--acid);
+  flex-shrink: 0;
+}
+
+.file-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+}
+
+.file-input::placeholder { color: var(--steel); }
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  flex-shrink: 0;
+  max-width: 240px;
+}
+
+.status-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--steel);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status-text.ok { color: var(--acid); }
+.status-text.err { color: var(--critical); }
+
+.admin-primary {
+  background: var(--acid);
+  color: var(--bg);
+  border: 1px solid var(--acid);
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 11px 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease);
+}
+
+.admin-primary:hover {
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--bg);
+}
+
+.admin-primary:disabled {
+  background: var(--panel);
+  border-color: var(--rule);
+  color: var(--steel);
+  cursor: not-allowed;
+}
+
+.admin-secondary {
+  background: var(--bg);
+  color: var(--paper);
+  border: 1px solid var(--rule);
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 10px 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 160ms var(--ease), color 160ms var(--ease);
+}
+
+.admin-secondary:hover {
+  border-color: var(--acid);
+  color: var(--acid);
+}
+
+.header-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.meta-chip {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  padding: 5px 9px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acid);
+}
+
+.token-bar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.token-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--steel);
+}
+
+.workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 224px;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.nav-group {
+  padding: 14px 0 6px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.nav-group-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--steel);
+  padding: 0 16px 8px;
+}
+
+.nav-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  color: var(--steel);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 160ms var(--ease), background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.nav-item:hover {
+  color: var(--paper);
+  background: var(--panel);
+}
+
+.nav-item.active {
+  color: var(--acid);
+  border-left-color: var(--acid);
+  background: var(--panel);
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--steel);
+  padding: 1px 6px;
+  min-width: 26px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-item.active .nav-badge {
+  border-color: var(--acid);
+  color: var(--acid);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 14px 16px;
+  border-top: 1px solid var(--rule);
+  background: var(--bg);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+}
+
+.footer-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--steel);
+  line-height: 1.7;
+  letter-spacing: 0.06em;
+}
+
+.footer-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--paper);
+  text-transform: uppercase;
+}
+
+.reodem-btn {
+  background: transparent;
+  border: 1px solid var(--rule);
+  padding: 4px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.reodem-btn:hover { border-color: var(--acid); }
+
+.reodem-svg {
+  width: 34px;
+  height: 34px;
+  image-rendering: pixelated;
+  display: block;
+}
+
+.reodem-bubble {
+  position: absolute;
+  bottom: 64px;
+  left: 12px;
+  right: 12px;
+  background: var(--panel);
+  border: 1px solid var(--acid);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 6px, 0);
+  transition: opacity 180ms steps(3, end), transform 180ms steps(3, end);
+  z-index: 20;
+}
+
+.reodem-bubble.visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.reodem-bubble.alert {
+  border-color: var(--critical);
+  color: var(--critical);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.panel {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px 32px;
+  display: none;
+}
+
+.panel.active {
+  display: block;
+  animation: panel-reveal 260ms var(--ease);
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.panel-h1 {
+  font-family: var(--font-pixel);
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+}
+
+.panel-h2 {
+  font-family: var(--font-pixel);
+  font-size: clamp(18px, 2.2vw, 26px);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+}
+
+.panel-h3 {
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  margin-bottom: 12px;
+}
+
+.panel-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--steel);
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 4px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.acid-bar {
+  width: 96px;
+  height: 4px;
+  background: var(--acid);
+  margin: 14px 0 18px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.tb-in, .tb-sel {
+  height: 40px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  color: var(--paper);
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 160ms var(--ease);
+}
+
+.tb-in:focus, .tb-sel:focus { border-color: var(--acid); }
+.tb-in::placeholder { color: var(--steel); }
+.tb-in-sm { width: 84px; }
+.tb-in-md { width: 200px; }
+.tb-in-lg { width: 260px; }
+
+.tb-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--steel);
+  letter-spacing: 0.04em;
+}
+
+.rc {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--steel);
+  font-variant-numeric: tabular-nums;
+}
+
+.pill-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+.pill-acid { border-color: var(--acid); color: var(--acid); }
+.pill-critical { border-color: var(--critical); color: var(--critical); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 20px;
+  transition: border-color 160ms var(--ease), background-color 160ms var(--ease);
+}
+
+.stat-card:hover {
+  border-color: var(--acid);
+  background: var(--panel);
+}
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--steel);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--paper);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+
+.stat-value.acid { color: var(--acid); }
+.stat-value.critical { color: var(--critical); }
+
+.stat-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--steel);
+  margin-top: 6px;
+}
+
+.hash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.hash-row {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.hash-lbl {
+  width: 84px;
+  flex-shrink: 0;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+.hash-val {
+  flex: 1;
+  color: var(--paper);
+  word-break: break-all;
+}
+
+.hot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.hot-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 160ms var(--ease), background-color 160ms var(--ease);
+}
+
+.hot-card:hover {
+  border-color: var(--acid);
+  background: var(--panel);
+}
+
+.hot-rank {
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  color: var(--steel);
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.hot-rank.top3 { color: var(--acid); }
+.hot-info { flex: 1; min-width: 0; }
+.hot-name { font-family: var(--font-mono); font-size: 12px; color: var(--paper); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hot-addr { font-family: var(--font-mono); font-size: 11px; color: var(--steel); margin-top: 2px; }
+.hot-calls { font-family: var(--font-mono); font-size: 13px; color: var(--acid); text-align: right; flex-shrink: 0; }
+.hot-calls small { display: block; font-size: 10px; color: var(--steel); }
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+thead tr { background: var(--panel); }
+
+th {
+  text-align: left;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--steel);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+tbody tr:hover { background: var(--panel); }
+tbody tr:last-child td { border-bottom: none; }
+
+.td-clip {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-str {
+  max-width: 460px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.addr { color: var(--acid); }
+.c-paper { color: var(--paper); }
+.c-steel { color: var(--steel); }
+.c-critical { color: var(--critical); }
+
+.tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--steel);
+}
+
+.tag-acid { border-color: var(--acid); color: var(--acid); }
+.tag-paper { border-color: var(--rule); color: var(--paper); }
+.tag-critical { border-color: var(--critical); color: var(--critical); }
+
+.size-bar {
+  display: inline-block;
+  height: 4px;
+  background: var(--acid);
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.code-frame {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  overflow: auto;
+  max-height: 68vh;
+}
+
+.code-pre {
+  padding: 18px 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--paper);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.da-tbl td {
+  padding: 4px 14px;
+  border-bottom: 1px solid rgba(36, 36, 36, 0.5);
+}
+
+.da-sym td {
+  padding-top: 12px;
+  color: var(--acid);
+  background: var(--bg);
+  border-top: 1px solid var(--rule);
+}
+
+.mnem-acid { color: var(--acid); font-weight: 500; }
+.mnem-critical { color: var(--critical); font-weight: 500; }
+.mnem-steel { color: var(--steel); }
+
+.empty {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-title {
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  color: var(--paper);
+  margin-bottom: 8px;
+}
+
+.empty-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--steel);
+  max-width: 56ch;
+  margin: 0 auto;
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--acid);
+}
+
+.pixel-loader {
+  width: 10px;
+  height: 10px;
+  background: var(--acid);
+  animation: pixel-blink 480ms steps(2, end) infinite;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--panel);
+  border: 1px solid var(--acid);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 10px 16px;
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+  pointer-events: none;
+  transition: opacity 180ms steps(3, end), transform 180ms steps(3, end);
+  z-index: 100;
+}
+
+.toast.show { opacity: 1; transform: translate3d(0, 0, 0); }
+.toast.err { border-color: var(--critical); color: var(--critical); }
+
+.table-note {
+  padding: 10px 14px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--steel);
+}
+
+.obf-banner {
+  margin-top: 18px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.obf-level {
+  font-family: var(--font-pixel);
+  font-size: 28px;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 960px) {
+  .header-chips { display: none; }
+  .sidebar { width: 184px; }
+  .panel { padding: 20px; }
+}
+
+
+.site-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(90deg, transparent 10%, rgba(204, 255, 0, 0.025) 14%, transparent 18%, transparent 82%, rgba(204, 255, 0, 0.025) 86%, transparent 90%),
+    linear-gradient(to right, rgba(36, 36, 36, 0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(36, 36, 36, 0.25) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+}
+
+.topbar, .token-bar, .workspace { position: relative; z-index: 1; }
+
+.pixel-dream-curtain {
+  position: absolute;
+  inset: 64px 0 0 0;
+  background: var(--bg);
+  border-bottom: 2px solid var(--acid);
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0;
+  transform: translate3d(0, -100%, 0);
+}
+
+.pixel-dream-curtain.wipe {
+  animation: curtain-wipe 240ms steps(4, end);
+}
+
+@keyframes curtain-wipe {
+  0%   { opacity: 0.92; transform: translate3d(0, -85%, 0); }
+  50%  { opacity: 0.72; transform: translate3d(0, 0%, 0); }
+  100% { opacity: 0; transform: translate3d(0, 100%, 0); }
+}
+
+.sec-alert {
+  background: var(--bg);
+  border: 1px solid var(--critical);
+  color: var(--critical);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.menu-btn { display: none; }
+
+@media (max-width: 820px) {
+  .menu-btn { display: inline-block; }
+  .sidebar {
+    position: absolute;
+    top: 64px;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    transform: translate3d(-100%, 0, 0);
+    transition: transform 200ms var(--ease);
+  }
+  .sidebar.open { transform: translate3d(0, 0, 0); }
+  .status-pill { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="site-frame">
+  <div class="load-progress" id="progress"></div>
+  <div class="pixel-dream-curtain" id="curtain"></div>
+  <div class="toast pixel-frame" id="toast" role="status" aria-live="polite"></div>
+
+  <header class="topbar">
+    <button class="admin-secondary pixel-frame menu-btn" id="menuBtn" type="button" aria-label="Toggle navigation">MENU</button>
+    <div class="brand">
+      <div class="brand-mark pixel-frame" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 11 11" shape-rendering="crispEdges"><rect x="1" y="1" width="2" height="9" fill="#0D0D0D"/><rect x="3" y="3" width="1" height="2" fill="#0D0D0D"/><rect x="4" y="5" width="1" height="2" fill="#0D0D0D"/><rect x="5" y="1" width="2" height="9" fill="#0D0D0D"/><rect x="8" y="1" width="2" height="2" fill="#0D0D0D"/><rect x="9" y="3" width="1" height="5" fill="#0D0D0D"/><rect x="8" y="8" width="2" height="2" fill="#0D0D0D"/></svg></div>
+      <div class="brand-meta">
+        <span class="brand-name">NEODAX</span>
+        <span class="brand-ver">v1.2.0 · WORKBENCH</span>
+      </div>
+    </div>
+    <div class="file-bar">
+      <span class="prompt-sig">&gt;</span>
+      <input class="file-input" id="fileInput" type="text" placeholder="/path/to/binary (ELF · PE · Mach-O)" spellcheck="false" autocomplete="off" aria-label="Binary file path">
+      <div class="status-pill pixel-frame">
+        <span class="status-dot idle" id="sdot"></span>
+        <span class="status-text" id="stxt">READY</span>
+      </div>
+    </div>
+    <button class="admin-primary pixel-frame pixel-flame" id="analyzeBtn" type="button">ANALYZE</button>
+    <button class="admin-secondary pixel-frame pixel-flame" id="tokenToggleBtn" type="button" title="Configure API token">AUTH</button>
+    <div class="header-chips">
+      <span class="meta-chip hidden" id="chip-arch"></span>
+      <span class="meta-chip hidden" id="chip-fmt"></span>
+      <span class="meta-chip hidden" id="chip-sz"></span>
+    </div>
+  </header>
+
+  <div class="token-bar hidden" id="tokenBar">
+    <label class="token-label" for="tokenInput">API TOKEN</label>
+    <input class="tb-in tb-in-lg" id="tokenInput" type="password" placeholder="Optional Bearer token (session only)" autocomplete="off">
+    <button class="admin-secondary pixel-frame pixel-flame" id="tokenSaveBtn" type="button">APPLY</button>
+    <button class="admin-secondary pixel-frame pixel-flame" id="tokenClearBtn" type="button">CLEAR</button>
+  </div>
+
+  <div class="workspace">
+    <nav class="sidebar" aria-label="Analysis sections">
+      <div class="nav-group">
+        <div class="nav-group-label">Binary</div>
+        <button class="nav-item pixel-flame-tab active" data-p="overview" type="button">Overview <span class="nav-badge" id="nb-overview">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="sections" type="button">Sections <span class="nav-badge" id="nb-sections">0</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Code</div>
+        <button class="nav-item pixel-flame-tab" data-p="symbols" type="button">Symbols <span class="nav-badge" id="nb-symbols">0</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="functions" type="button">Functions <span class="nav-badge" id="nb-functions">0</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="blocks" type="button">CFG Blocks <span class="nav-badge" id="nb-blocks">0</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="xrefs" type="button">Xrefs <span class="nav-badge" id="nb-xrefs">0</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Data</div>
+        <button class="nav-item pixel-flame-tab" data-p="strings" type="button">Strings <span class="nav-badge" id="nb-strings">0</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="unicode" type="button">Unicode <span class="nav-badge" id="nb-unicode">0</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Disassembly</div>
+        <button class="nav-item pixel-flame-tab" data-p="disasm" type="button">Disassemble <span class="nav-badge" id="nb-disasm">—</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Advanced</div>
+        <button class="nav-item pixel-flame-tab" data-p="decompile" type="button">Decompiler <span class="nav-badge" id="nb-decomp">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="ssa" type="button">SSA Form <span class="nav-badge" id="nb-ssa">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="symexec" type="button">Sym Exec <span class="nav-badge" id="nb-sym">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="emulate" type="button">Emulator <span class="nav-badge" id="nb-emu">—</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Detection</div>
+        <button class="nav-item pixel-flame-tab" data-p="entropy" type="button">Entropy <span class="nav-badge" id="nb-entropy">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="rda" type="button">Rec. Descent <span class="nav-badge" id="nb-rda">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="ivf" type="button">Validity <span class="nav-badge" id="nb-ivf">—</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Obfuscation</div>
+        <button class="nav-item pixel-flame-tab" data-p="poly" type="button">Poly Map <span class="nav-badge" id="nb-poly">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="aire" type="button">AIRE <span class="nav-badge" id="nb-aire">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="obfscore" type="button">Obf Score <span class="nav-badge" id="nb-obfscore">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="vmtrace" type="button">VM Trace <span class="nav-badge" id="nb-vmtrace">—</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Graphs</div>
+        <button class="nav-item pixel-flame-tab" data-p="cfg" type="button">CFG <span class="nav-badge" id="nb-cfg">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="callgraph" type="button">Call Graph <span class="nav-badge" id="nb-callgraph">—</span></button>
+        <button class="nav-item pixel-flame-tab" data-p="loops" type="button">Loops <span class="nav-badge" id="nb-loops">—</span></button>
+      </div>
+      <div class="sidebar-footer">
+        <div class="reodem-bubble pixel-frame" id="reodemBubble"></div>
+        <div class="footer-meta">
+          <div class="footer-online"><span class="status-dot"></span> ONLINE</div>
+          <div>NEODAX v1.2.0</div>
+          <div>VERSANEXUSIX</div>
+        </div>
+        <button class="reodem-btn" id="reodemBtn" type="button" aria-label="Re-Odem mascot">
+          <svg class="reodem-svg" viewBox="0 0 14 14" shape-rendering="crispEdges" aria-hidden="true">
+            <rect x="4" y="0" width="6" height="1" fill="#CCFF00"/>
+            <rect x="3" y="1" width="8" height="2" fill="#CCFF00"/>
+            <rect x="2" y="3" width="10" height="1" fill="#99CC00"/>
+            <rect x="2" y="4" width="10" height="4" fill="#141414"/>
+            <rect x="3" y="5" width="8" height="2" fill="#0D0D0D"/>
+            <rect id="reodemEyeL" x="4" y="5" width="2" height="2" fill="#CCFF00"/>
+            <rect id="reodemEyeR" x="8" y="5" width="2" height="2" fill="#CCFF00"/>
+            <rect x="3" y="8" width="8" height="3" fill="#242424"/>
+            <rect x="5" y="9" width="4" height="1" fill="#8A8A85"/>
+            <rect x="3" y="11" width="3" height="2" fill="#1C1C1C"/>
+            <rect x="8" y="11" width="3" height="2" fill="#1C1C1C"/>
+            <rect x="2" y="13" width="4" height="1" fill="#CCFF00"/>
+            <rect x="8" y="13" width="4" height="1" fill="#CCFF00"/>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <main class="content">
+      <div class="sec-alert hidden" id="secAlert" role="alert"><span id="secAlertText"></span><button class="admin-secondary pixel-frame" id="secAlertClose" type="button">DISMISS</button></div>
+      <section class="panel active" id="panel-overview">
+        <div class="panel-head">
+          <h1 class="panel-h1" id="ov-title">NEODAX WORKBENCH</h1>
+          <span class="panel-count" id="ov-badge">IDLE</span>
+        </div>
+        <div id="ov-empty" class="empty">
+          <div class="empty-title">NO BINARY LOADED</div>
+          <div class="empty-sub">Enter a local binary path in the top command bar and run ANALYZE to inspect sections, symbols, CFG, disassembly, decompilation, and obfuscation signals.</div>
+        </div>
+        <div id="ov-content" class="hidden">
+          <div id="ov-top"></div>
+          <div class="acid-bar"></div>
+          <div class="stats-grid" id="ov-stats"></div>
+          <div class="hash-list" id="ov-hashes"></div>
+          <div id="ov-hot"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-sections">
+        <div class="panel-head"><h2 class="panel-h2">SECTIONS</h2><span class="panel-count" id="pc-sections">0</span></div>
+        <div id="sec-body"><div class="empty"><div class="empty-title">NO DATA</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-symbols">
+        <div class="panel-head"><h2 class="panel-h2">SYMBOLS</h2><span class="panel-count" id="pc-symbols">0</span></div>
+        <div class="toolbar">
+          <input class="tb-in tb-in-md" id="sym-q" placeholder="Filter symbol name...">
+          <select class="tb-sel" id="sym-type">
+            <option value="">All types</option>
+            <option>function</option><option>import</option><option>export</option>
+            <option>object</option><option>weak</option><option>local</option>
+          </select>
+          <span class="rc" id="sym-rc"></span>
+        </div>
+        <div id="sym-body"><div class="empty"><div class="empty-title">NO DATA</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-functions">
+        <div class="panel-head"><h2 class="panel-h2">FUNCTIONS</h2><span class="panel-count" id="pc-functions">0</span></div>
+        <div class="toolbar">
+          <input class="tb-in tb-in-md" id="fn-q" placeholder="Filter function name...">
+          <select class="tb-sel" id="fn-sort">
+            <option value="addr">Sort by address</option>
+            <option value="size">Sort by size</option>
+            <option value="name">Sort by name</option>
+          </select>
+          <span class="rc" id="fn-rc"></span>
+        </div>
+        <div id="fn-body"><div class="empty"><div class="empty-title">NO DATA</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-blocks">
+        <div class="panel-head"><h2 class="panel-h2">CFG BASIC BLOCKS</h2><span class="panel-count" id="pc-blocks">0</span></div>
+        <div class="toolbar">
+          <input class="tb-in tb-in-md" id="blk-q" placeholder="Filter by function index...">
+          <span class="rc" id="blk-rc"></span>
+        </div>
+        <div id="blk-body"><div class="empty"><div class="empty-title">NO DATA</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-xrefs">
+        <div class="panel-head"><h2 class="panel-h2">CROSS-REFERENCES</h2><span class="panel-count" id="pc-xrefs">0</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="xref-type">
+            <option value="">All</option><option value="call">Calls</option><option value="jump">Jumps</option>
+          </select>
+          <input class="tb-in tb-in-md" id="xref-q" placeholder="Filter hex address...">
+          <span class="rc" id="xref-rc"></span>
+        </div>
+        <div id="xref-body"><div class="empty"><div class="empty-title">NO DATA</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-strings">
+        <div class="panel-head"><h2 class="panel-h2">ASCII STRINGS</h2><span class="panel-count" id="pc-strings">0</span></div>
+        <div class="toolbar">
+          <input class="tb-in tb-in-lg" id="str-q" placeholder="Filter ASCII string...">
+          <input class="tb-in tb-in-sm" id="str-minlen" value="4" title="Minimum length">
+          <span class="rc" id="str-rc"></span>
+        </div>
+        <div id="str-body"><div class="empty"><div class="empty-title">NO DATA</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-unicode">
+        <div class="panel-head"><h2 class="panel-h2">UNICODE STRINGS</h2><span class="panel-count" id="pc-unicode">0</span></div>
+        <div class="toolbar">
+          <input class="tb-in tb-in-lg" id="uni-q" placeholder="Filter Unicode string...">
+          <select class="tb-sel" id="uni-enc">
+            <option value="">All encodings</option>
+            <option value="utf-8">UTF-8</option><option value="utf-16le">UTF-16LE</option>
+            <option value="utf-16be">UTF-16BE</option><option value="ascii">ASCII</option>
+          </select>
+          <span class="rc" id="uni-rc"></span>
+        </div>
+        <div id="uni-body"><div class="empty"><div class="empty-title">NO DATA</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-disasm">
+        <div class="panel-head"><h2 class="panel-h2">DISASSEMBLY</h2><span class="panel-count" id="pc-disasm">0 INSNS</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="da-sec"></select>
+          <select class="tb-sel" id="da-mode">
+            <option value="json">Structured</option><option value="text">Plain text</option>
+          </select>
+          <select class="tb-sel" id="da-grp">
+            <option value="">All groups</option>
+            <option>call</option><option>branch</option><option>return</option>
+            <option>arithmetic</option><option>data-move</option><option>compare</option>
+            <option>stack</option><option>syscall</option><option>nop</option>
+          </select>
+          <input class="tb-in tb-in-sm" id="da-limit" value="400" title="Max instructions">
+          <input class="tb-in tb-in-md" id="da-search" placeholder="Filter mnem / ops...">
+          <button class="admin-secondary pixel-frame pixel-flame" id="daRefreshBtn" type="button">RUN</button>
+          <span class="rc" id="da-rc"></span>
+        </div>
+        <div id="da-body"><div class="empty"><div class="empty-title">NO DATA</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-decompile">
+        <div class="panel-head"><h2 class="panel-h2">DECOMPILER</h2><span class="panel-count" id="pc-decomp">READY</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="dc-fn"></select>
+          <button class="admin-primary pixel-frame pixel-flame" id="dcRunBtn" type="button">DECOMPILE</button>
+        </div>
+        <div id="dc-body"><div class="empty"><div class="empty-title">SELECT FUNCTION</div><div class="empty-sub">Pseudo-C lifting from NeoDAX Representation (NR).</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-ssa">
+        <div class="panel-head"><h2 class="panel-h2">SSA FORM</h2><span class="panel-count" id="pc-ssa">READY</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="ssa-fn"></select>
+          <button class="admin-primary pixel-frame pixel-flame" id="ssaRunBtn" type="button">LIFT SSA</button>
+        </div>
+        <div id="ssa-body"><div class="empty"><div class="empty-title">SELECT FUNCTION</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-symexec">
+        <div class="panel-head"><h2 class="panel-h2">SYMBOLIC EXECUTION</h2><span class="panel-count" id="pc-sym">READY</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="sym-fn"></select>
+          <button class="admin-primary pixel-frame pixel-flame" id="symRunBtn" type="button">EXECUTE</button>
+        </div>
+        <div id="sym-body"><div class="empty"><div class="empty-title">SELECT FUNCTION</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-emulate">
+        <div class="panel-head"><h2 class="panel-h2">EMULATOR</h2><span class="panel-count" id="pc-emu">READY</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="emu-fn"></select>
+          <input class="tb-in tb-in-sm" id="emu-r0" value="0" placeholder="x0">
+          <input class="tb-in tb-in-sm" id="emu-r1" value="1" placeholder="x1">
+          <input class="tb-in tb-in-sm" id="emu-r2" value="0" placeholder="x2">
+          <button class="admin-primary pixel-frame pixel-flame" id="emuRunBtn" type="button">EMULATE</button>
+          <span class="tb-hint">Initial registers: x0, x1, x2 (ARM64)</span>
+        </div>
+        <div id="emu-body"><div class="empty"><div class="empty-title">SELECT FUNCTION</div><div class="empty-sub">Concrete ARM64 execution engine.</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-entropy">
+        <div class="panel-head"><h2 class="panel-h2">ENTROPY ANALYSIS</h2><span class="panel-count" id="pc-entropy">READY</span></div>
+        <div class="toolbar">
+          <button class="admin-primary pixel-frame pixel-flame" id="entropyRunBtn" type="button">SCAN ENTROPY</button>
+          <span class="tb-hint">256B sliding window · high &gt;= 6.8 bits · packed &gt;= 7.0</span>
+        </div>
+        <div id="entropy-body"><div class="empty"><div class="empty-title">READY TO SCAN</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-rda">
+        <div class="panel-head"><h2 class="panel-h2">RECURSIVE DESCENT</h2><span class="panel-count" id="pc-rda">READY</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="rda-sec"></select>
+          <button class="admin-primary pixel-frame pixel-flame" id="rdaRunBtn" type="button">DISASSEMBLE</button>
+          <span class="tb-hint">Control-flow guided decode with dead-byte detection</span>
+        </div>
+        <div id="rda-body"><div class="empty"><div class="empty-title">SELECT SECTION</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-ivf">
+        <div class="panel-head"><h2 class="panel-h2">INSTRUCTION VALIDITY</h2><span class="panel-count" id="pc-ivf">READY</span></div>
+        <div class="toolbar">
+          <button class="admin-primary pixel-frame pixel-flame" id="ivfRunBtn" type="button">RUN SCAN</button>
+          <span class="tb-hint">Invalid opcodes, privileged insns, NOP-runs, dead bytes</span>
+        </div>
+        <div id="ivf-body"><div class="empty"><div class="empty-title">READY TO SCAN</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-poly">
+        <div class="panel-head"><h2 class="panel-h2">POLYMORPHIC MAP</h2><span class="panel-count" id="pc-poly">READY</span></div>
+        <div class="toolbar">
+          <button class="admin-primary pixel-frame pixel-flame" id="polyRunBtn" type="button">SCAN POLY</button>
+          <span class="tb-hint">OLLVM · Themida · junk insertion · opaque predicates</span>
+        </div>
+        <div id="poly-body"><div class="empty"><div class="empty-title">READY TO SCAN</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-aire">
+        <div class="panel-head"><h2 class="panel-h2">AIRE INSIGHTS</h2><span class="panel-count" id="pc-aire">READY</span></div>
+        <div class="toolbar">
+          <button class="admin-primary pixel-frame pixel-flame" id="aireRunBtn" type="button">ANALYZE</button>
+          <span class="tb-hint">Context-aware synthesis across all passes</span>
+        </div>
+        <div id="aire-body"><div class="empty"><div class="empty-title">READY TO ANALYZE</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-obfscore">
+        <div class="panel-head"><h2 class="panel-h2">OBFUSCATION SCORE</h2><span class="panel-count" id="pc-obfscore">READY</span></div>
+        <div class="toolbar">
+          <button class="admin-primary pixel-frame pixel-flame" id="obfRunBtn" type="button">COMPUTE SCORE</button>
+          <span class="tb-hint">SMC · opaque predicates · indirect branches · anti-debug</span>
+        </div>
+        <div id="obfscore-body"><div class="empty"><div class="empty-title">READY TO SCORE</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-vmtrace">
+        <div class="panel-head"><h2 class="panel-h2">VM DISPATCH TRACE</h2><span class="panel-count" id="pc-vmtrace">READY</span></div>
+        <div class="toolbar">
+          <button class="admin-primary pixel-frame pixel-flame" id="vmRunBtn" type="button">TRACE VM</button>
+          <span class="tb-hint">Virtual machine interpreter &amp; dispatch loop detection</span>
+        </div>
+        <div id="vmtrace-body"><div class="empty"><div class="empty-title">READY TO TRACE</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-cfg">
+        <div class="panel-head"><h2 class="panel-h2">CONTROL FLOW GRAPH</h2><span class="panel-count" id="pc-cfg">READY</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="cfg-fn"></select>
+          <button class="admin-primary pixel-frame pixel-flame" id="cfgRunBtn" type="button">BUILD CFG</button>
+          <span class="rc" id="cfg-info"></span>
+        </div>
+        <div id="cfg-body"><div class="empty"><div class="empty-title">SELECT FUNCTION</div><div class="empty-sub">Poly-aware, SMC-aware, back-edge detection.</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-callgraph">
+        <div class="panel-head"><h2 class="panel-h2">CALL GRAPH</h2><span class="panel-count" id="pc-callgraph">READY</span></div>
+        <div class="toolbar">
+          <button class="admin-primary pixel-frame pixel-flame" id="cgRunBtn" type="button">BUILD GRAPH</button>
+          <span class="tb-hint">Inter-procedural caller / callee edges</span>
+        </div>
+        <div id="callgraph-body"><div class="empty"><div class="empty-title">READY TO BUILD</div></div></div>
+      </section>
+
+      <section class="panel" id="panel-loops">
+        <div class="panel-head"><h2 class="panel-h2">LOOP DETECTION</h2><span class="panel-count" id="pc-loops">READY</span></div>
+        <div class="toolbar">
+          <select class="tb-sel" id="loops-fn"><option value="-1">All functions</option></select>
+          <button class="admin-primary pixel-frame pixel-flame" id="loopsRunBtn" type="button">DETECT LOOPS</button>
+        </div>
+        <div id="loops-body"><div class="empty"><div class="empty-title">READY TO DETECT</div></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script nonce="__CSP_NONCE__">
+(() => {
+  const API = window.location.origin;
+  const S = {
+    file: null, info: null,
+    sections: [], symbols: [], functions: [], blocks: [],
+    xrefs: [], strings: [], unicode: [],
+    allInsns: [], hottest: [],
+  };
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const REODEM_LINES = [
+    'RE-ODEM ONLINE. FEED ME AN ELF OR PE.',
+    'ZERO ROUNDED CORNERS. PURE SIGNAL.',
+    'CHECKING BOUNDS AND OPCODES.',
+    'READY FOR CFG + DECOMPILER PASS.',
+  ];
+  let bubbleTimer = null;
+  let toastTimer  = null;
+
+  function reodemSpeak(msg, alertMode = false) {
+    const b = $('reodemBubble');
+    const color = alertMode ? '#FF3B30' : '#CCFF00';
+    $('reodemEyeL').setAttribute('fill', color);
+    $('reodemEyeR').setAttribute('fill', color);
+    b.textContent = msg;
+    b.classList.toggle('alert', alertMode);
+    b.classList.add('visible');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => {
+      b.classList.remove('visible');
+      if (alertMode) {
+        $('reodemEyeL').setAttribute('fill', '#CCFF00');
+        $('reodemEyeR').setAttribute('fill', '#CCFF00');
+      }
+    }, 3800);
+  }
+
+  function toast(msg, isErr = false, ms = 2400) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.toggle('err', isErr);
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+  }
+
+  function setProgress(p) {
+    $('progress').style.transform = `scaleX(${p})`;
+  }
+
+  function setStatus(state, msg) {
+    $('sdot').className = `status-dot ${state}`;
+    const t = $('stxt');
+    t.className = `status-text ${state}`;
+    t.textContent = msg;
+  }
+
+  function fmtSize(v) {
+    const s = String(v ?? '');
+    const n = s.startsWith('0x') ? parseInt(s, 16) : parseFloat(s);
+    if (isNaN(n) || n === 0) return '0 B';
+    if (n >= 1048576) return `${(n / 1048576).toFixed(1)} MB`;
+    if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${n.toLocaleString()} B`;
+  }
+
+  function numFmt(v) {
+    const s = String(v ?? '');
+    const n = s.startsWith('0x') ? parseInt(s, 16) : parseFloat(s);
+    return isNaN(n) ? '' : n.toLocaleString();
+  }
+
+  function toNum(v) {
+    const s = String(v ?? '');
+    return s.startsWith('0x') ? parseInt(s, 16) : (parseInt(s, 10) || 0);
+  }
+
+  function fmtFlags(f) {
+    if (!f) return '---';
+    return `${(f & 0x4 || f & 0x20000000) ? 'X' : '-'}${f & 0x2 ? 'W' : '-'}${f & 0x1 ? 'R' : '-'}`;
+  }
+
+  function emptyHtml(title, sub = '') {
+    return `<div class="empty"><div class="empty-title">${esc(title)}</div>${sub ? `<div class="empty-sub">${esc(sub)}</div>` : ''}</div>`;
+  }
+
+  function loadingHtml(msg) {
+    return `<div class="loading-row"><span class="pixel-loader"></span><span>${esc(msg)}</span></div>`;
+  }
+
+  async function post(route, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = sessionStorage.getItem('neodax_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const r = await fetch(API + route, { method: 'POST', headers, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) {
+      if (r.status === 401 || r.status === 403 || r.status === 429) {
+        $('secAlertText').textContent = `SECURITY [${r.status}] — ${d.error || r.statusText}`;
+        $('secAlert').classList.remove('hidden');
+      }
+      throw new Error(d.error || r.statusText);
+    }
+    $('secAlert').classList.add('hidden');
+    return d;
+  }
+
+  function go(name) {
+    const c = $('curtain');
+    c.classList.remove('wipe');
+    void c.offsetWidth;
+    c.classList.add('wipe');
+    document.querySelectorAll('.nav-item').forEach(e => e.classList.toggle('active', e.dataset.p === name));
+    document.querySelectorAll('.panel').forEach(e => e.classList.toggle('active', e.id === `panel-${name}`));
+    document.querySelector('.sidebar').classList.remove('open');
+    if (name === 'disasm' && S.file && S.allInsns.length === 0) renderDisasm();
+  }
+
+  function updateBadges() {
+    $('nb-overview').textContent = 'OK';
+    $('nb-sections').textContent = S.sections.length;
+    $('nb-symbols').textContent = S.symbols.length;
+    $('nb-functions').textContent = S.functions.length;
+    $('nb-blocks').textContent = S.blocks.length > 999 ? '999+' : S.blocks.length;
+    $('nb-xrefs').textContent = S.xrefs.length > 999 ? '999+' : S.xrefs.length;
+    $('nb-strings').textContent = S.strings.length > 999 ? '999+' : S.strings.length;
+    $('nb-unicode').textContent = S.unicode.length;
+    $('pc-sections').textContent = S.sections.length;
+    $('pc-symbols').textContent = S.symbols.length;
+    $('pc-functions').textContent = S.functions.length;
+    $('pc-blocks').textContent = S.blocks.length;
+    $('pc-xrefs').textContent = S.xrefs.length;
+    $('pc-strings').textContent = S.strings.length;
+    $('pc-unicode').textContent = S.unicode.length;
+  }
+
+  function updateChips() {
+    const i = S.info;
+    $('chip-arch').textContent = i.arch;
+    $('chip-fmt').textContent = i.format;
+    $('chip-sz').textContent = fmtSize(i.imageSize || i.codeSize);
+    ['chip-arch', 'chip-fmt', 'chip-sz'].forEach(id => $(id).classList.remove('hidden'));
+  }
+
+  function populateSectionSel() {
+    const code = S.sections.filter(s => s.type === 'code' || s.type === 'plt');
+    const list = code.length ? code : [{ name: '.text' }];
+    ['da-sec', 'rda-sec'].forEach(id => {
+      const sel = $(id);
+      sel.innerHTML = '';
+      list.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.name;
+        o.textContent = s.name;
+        sel.appendChild(o);
+      });
+    });
+  }
+
+  function populateFnDropdowns() {
+    ['dc-fn', 'ssa-fn', 'sym-fn', 'emu-fn', 'cfg-fn', 'loops-fn'].forEach(id => {
+      const sel = $(id);
+      sel.innerHTML = '';
+      if (id === 'loops-fn') {
+        const allOpt = document.createElement('option');
+        allOpt.value = '-1';
+        allOpt.textContent = 'All functions';
+        sel.appendChild(allOpt);
+      }
+      S.functions.forEach((f, idx) => {
+        const o = document.createElement('option');
+        o.value = String(idx);
+        o.textContent = f.name.length > 44 ? `${f.name.slice(0, 44)}...` : f.name;
+        sel.appendChild(o);
+      });
+    });
+  }
+
+  function renderOverview() {
+    const i = S.info;
+    const name = (i.file || '').split('/').pop() || 'BINARY';
+    $('ov-title').textContent = name.toUpperCase();
+    $('ov-badge').textContent = `${i.format} · ${i.arch}`;
+    $('ov-empty').classList.add('hidden');
+    $('ov-content').classList.remove('hidden');
+
+    const pills = [
+      { cls: 'pill-acid', t: i.arch },
+      { cls: '', t: i.format },
+      { cls: '', t: i.os },
+      i.isPie ? { cls: 'pill-acid', t: 'PIE' } : null,
+      i.isStripped ? { cls: 'pill-critical', t: 'STRIPPED' } : null,
+      i.hasDebug ? { cls: '', t: 'DEBUG' } : null,
+    ].filter(Boolean);
+
+    $('ov-top').innerHTML = `
+      <div class="font-mono c-steel">${esc(i.file)}</div>
+      <div class="pill-row">${pills.map(p => `<span class="pill ${p.cls}">${esc(p.t)}</span>`).join('')}</div>`;
+
+    const stats = [
+      { l: 'Sections',   v: S.sections.length,  s: 'mapped' },
+      { l: 'Symbols',    v: S.symbols.length,   s: i.isStripped ? 'stripped' : 'symtab' },
+      { l: 'Functions',  v: S.functions.length, s: 'detected', acid: true },
+      { l: 'CFG Blocks', v: S.blocks.length,    s: 'basic blocks' },
+      { l: 'Xrefs',      v: S.xrefs.length,     s: 'call + jump' },
+      { l: 'Strings',    v: S.strings.length,   s: 'ASCII' },
+      { l: 'Unicode',    v: S.unicode.length,   s: 'UTF-8 / UTF-16' },
+      { l: 'Code Size',  v: fmtSize(i.codeSize), s: `${numFmt(i.codeSize)} B` },
+      { l: 'Data Size',  v: fmtSize(i.dataSize), s: `${numFmt(i.dataSize)} B` },
+      { l: 'Entry',      v: String(i.entry).toUpperCase(), s: 'virtual addr', acid: true },
+    ];
+
+    $('ov-stats').innerHTML = stats.map(st => `
+      <div class="stat-card pixel-frame pixel-reticle">
+        <div class="stat-label">${esc(st.l)}</div>
+        <div class="stat-value ${st.acid ? 'acid' : ''}">${esc(String(st.v))}</div>
+        <div class="stat-sub">${esc(st.s)}</div>
+      </div>`).join('');
+
+    const hashes = [
+      { l: 'SHA-256',  v: i.sha256,           copy: i.sha256 },
+      { l: 'Build-ID', v: i.buildId || 'NONE', copy: i.buildId || '' },
+      { l: 'Base',     v: String(i.base),     copy: String(i.base) },
+    ];
+
+    $('ov-hashes').innerHTML = hashes.map((h, idx) => `
+      <div class="hash-row">
+        <span class="hash-lbl">${esc(h.l)}</span>
+        <span class="hash-val">${esc(h.v)}</span>
+        ${h.copy ? `<button class="admin-secondary pixel-frame pixel-flame" data-copy-idx="${idx}" type="button">COPY</button>` : ''}
+      </div>`).join('');
+
+    $('ov-hashes').querySelectorAll('[data-copy-idx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = hashes[Number(btn.dataset.copyIdx)].copy;
+        navigator.clipboard.writeText(val).then(() => toast('COPIED TO CLIPBOARD')).catch(() => toast('COPY FAILED', true));
+      });
+    });
+
+    if (S.hottest.length) {
+      $('ov-hot').innerHTML = `
+        <h3 class="panel-h3">HOTTEST FUNCTIONS</h3>
+        <div class="hot-grid">${S.hottest.map((h, idx) => `
+          <div class="hot-card pixel-frame pixel-reticle">
+            <div class="hot-rank ${idx < 3 ? 'top3' : ''}">${idx + 1}</div>
+            <div class="hot-info">
+              <div class="hot-name" title="${esc(h.function.name)}">${esc(h.function.name)}</div>
+              <div class="hot-addr">${esc(h.function.start)}</div>
+            </div>
+            <div class="hot-calls">${h.callCount}<small>CALLS</small></div>
+          </div>`).join('')}
+        </div>`;
+    } else {
+      $('ov-hot').innerHTML = '';
+    }
+  }
+
+  function renderSections() {
+    if (!S.sections.length) { $('sec-body').innerHTML = emptyHtml('NO SECTIONS'); return; }
+    $('sec-body').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Name</th><th>Type</th><th>VirtAddr</th><th>Offset</th><th>Size</th><th>Flags</th><th>Insns</th></tr></thead>
+      <tbody>${S.sections.map((s, idx) => `<tr>
+        <td class="c-steel">${idx}</td>
+        <td class="c-paper td-clip" title="${esc(s.name)}">${esc(s.name)}</td>
+        <td><span class="tag ${s.type === 'code' ? 'tag-acid' : 'tag-paper'}">${esc(s.type)}</span></td>
+        <td class="addr">${esc(s.vaddr)}</td>
+        <td class="c-steel">${esc(s.offset)}</td>
+        <td class="c-paper">${fmtSize(s.size)}</td>
+        <td class="c-steel">${fmtFlags(s.flags)}</td>
+        <td class="c-steel">${s.insnCount || '—'}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderSymbols() {
+    const q = $('sym-q').value.toLowerCase();
+    const type = $('sym-type').value;
+    let syms = S.symbols;
+    if (q) syms = syms.filter(s => `${s.name} ${s.demangled}`.toLowerCase().includes(q));
+    if (type) syms = syms.filter(s => s.type === type);
+    $('sym-rc').textContent = `${syms.length} / ${S.symbols.length}`;
+    if (!S.symbols.length) { $('sym-body').innerHTML = emptyHtml('NO SYMBOLS', 'Binary is stripped.'); return; }
+    if (!syms.length) { $('sym-body').innerHTML = emptyHtml('NO MATCHES'); return; }
+    $('sym-body').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Address</th><th>Type</th><th>Size</th><th>Name</th><th>Demangled</th></tr></thead>
+      <tbody>${syms.slice(0, 600).map(s => `<tr>
+        <td class="addr">${esc(s.address)}</td>
+        <td><span class="tag ${s.type === 'function' ? 'tag-acid' : ''}">${esc(s.type)}</span>${s.isEntry ? ' <span class="tag tag-acid">ENTRY</span>' : ''}</td>
+        <td class="c-steel">${s.size && s.size !== '0x0' ? fmtSize(s.size) : '—'}</td>
+        <td class="c-paper td-clip" title="${esc(s.name)}">${esc(s.name)}</td>
+        <td class="c-steel td-clip" title="${esc(s.demangled)}">${s.demangled && s.demangled !== s.name ? esc(s.demangled) : ''}</td>
+      </tr>`).join('')}</tbody></table>${syms.length > 600 ? `<div class="table-note">Showing 600 of ${syms.length}</div>` : ''}</div>`;
+  }
+
+  function renderFunctions() {
+    const q = $('fn-q').value.toLowerCase();
+    const sort = $('fn-sort').value;
+    let fns = [...S.functions];
+    if (q) fns = fns.filter(f => f.name.toLowerCase().includes(q));
+    if (sort === 'size') fns.sort((a, b) => toNum(b.size) - toNum(a.size));
+    else if (sort === 'name') fns.sort((a, b) => a.name.localeCompare(b.name));
+    $('fn-rc').textContent = `${fns.length} / ${S.functions.length}`;
+    if (!S.functions.length) { $('fn-body').innerHTML = emptyHtml('NO FUNCTIONS'); return; }
+    if (!fns.length) { $('fn-body').innerHTML = emptyHtml('NO MATCHES'); return; }
+    const maxSz = Math.max(...fns.slice(0, 500).map(f => toNum(f.size))) || 1;
+    $('fn-body').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Start</th><th>Size</th><th>Insns</th><th>Blocks</th><th>Flags</th><th>Name</th></tr></thead>
+      <tbody>${fns.slice(0, 500).map(f => {
+        const bw = Math.max(4, Math.round((toNum(f.size) / maxSz) * 44));
+        return `<tr>
+          <td class="addr">${esc(f.start)}</td>
+          <td class="c-paper"><span class="size-bar" data-w="${bw}"></span>${fmtSize(f.size)}</td>
+          <td class="c-steel">${f.insnCount || '—'}</td>
+          <td class="c-steel">${f.blockCount || '—'}</td>
+          <td>${f.hasCalls ? '<span class="tag tag-acid">CALLS</span> ' : ''}${f.hasLoops ? '<span class="tag tag-paper">LOOPS</span>' : ''}</td>
+          <td class="c-paper td-clip" title="${esc(f.name)}">${esc(f.name)}</td>
+        </tr>`;
+      }).join('')}</tbody></table>${fns.length > 500 ? `<div class="table-note">Showing 500 of ${fns.length}</div>` : ''}</div>`;
+    $('fn-body').querySelectorAll('.size-bar').forEach(el => { el.style.width = `${el.dataset.w}px`; });
+  }
+
+  function renderBlocks() {
+    const q = $('blk-q').value.trim();
+    let blks = S.blocks;
+    if (q) {
+      const qi = parseInt(q, 10);
+      if (!isNaN(qi)) blks = blks.filter(b => b.funcIdx === qi);
+    }
+    $('blk-rc').textContent = `${blks.length} / ${S.blocks.length}`;
+    if (!S.blocks.length) { $('blk-body').innerHTML = emptyHtml('NO CFG BLOCKS'); return; }
+    if (!blks.length) { $('blk-body').innerHTML = emptyHtml('NO MATCHES'); return; }
+    $('blk-body').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>Start</th><th>End</th><th>Size</th><th>Func</th><th>Pred</th><th>Succ</th><th>Flags</th></tr></thead>
+      <tbody>${blks.slice(0, 1000).map(b => `<tr>
+        <td class="c-steel">${b.id}</td>
+        <td class="addr">${esc(b.start)}</td>
+        <td class="addr">${esc(b.end)}</td>
+        <td class="c-paper">${fmtSize(toNum(b.end) - toNum(b.start))}</td>
+        <td class="c-steel">${b.funcIdx}</td>
+        <td class="c-steel">${b.npred}</td>
+        <td class="c-steel">${b.nsucc}</td>
+        <td>${b.isEntry ? '<span class="tag tag-acid">ENTRY</span> ' : ''}${b.isExit ? '<span class="tag tag-critical">EXIT</span>' : ''}</td>
+      </tr>`).join('')}</tbody></table>${blks.length > 1000 ? `<div class="table-note">Showing 1000 of ${blks.length}</div>` : ''}</div>`;
+  }
+
+  function renderXrefs() {
+    const type = $('xref-type').value;
+    const q = $('xref-q').value.toLowerCase();
+    let xrefs = S.xrefs;
+    if (type === 'call') xrefs = xrefs.filter(x => x.isCall);
+    if (type === 'jump') xrefs = xrefs.filter(x => !x.isCall);
+    if (q) xrefs = xrefs.filter(x => String(x.from).toLowerCase().includes(q) || String(x.to).toLowerCase().includes(q));
+    $('xref-rc').textContent = `${xrefs.length} / ${S.xrefs.length}`;
+    if (!S.xrefs.length) { $('xref-body').innerHTML = emptyHtml('NO XREFS'); return; }
+    if (!xrefs.length) { $('xref-body').innerHTML = emptyHtml('NO MATCHES'); return; }
+    $('xref-body').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>From</th><th>Type</th><th>To</th></tr></thead>
+      <tbody>${xrefs.slice(0, 2000).map(x => `<tr>
+        <td class="addr">${esc(x.from)}</td>
+        <td><span class="tag ${x.isCall ? 'tag-acid' : ''}">${x.isCall ? 'CALL' : 'JUMP'}</span></td>
+        <td class="addr">${esc(x.to)}</td>
+      </tr>`).join('')}</tbody></table>${xrefs.length > 2000 ? `<div class="table-note">Showing 2000 of ${xrefs.length}</div>` : ''}</div>`;
+  }
+
+  function renderStrings() {
+    const q = $('str-q').value.toLowerCase();
+    const minLen = parseInt($('str-minlen').value, 10) || 4;
+    let ss = S.strings.filter(s => s.length >= minLen);
+    if (q) ss = ss.filter(s => s.value.toLowerCase().includes(q));
+    $('str-rc').textContent = `${ss.length} SHOWN`;
+    if (!S.strings.length) { $('str-body').innerHTML = emptyHtml('NO STRINGS'); return; }
+    if (!ss.length) { $('str-body').innerHTML = emptyHtml('NO MATCHES'); return; }
+    $('str-body').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Address</th><th>Len</th><th>Value</th></tr></thead>
+      <tbody>${ss.slice(0, 2000).map(s => `<tr>
+        <td class="addr">${esc(s.address)}</td>
+        <td class="c-steel">${s.length}</td>
+        <td class="c-paper td-str" title="${esc(s.value)}">${esc(s.value)}</td>
+      </tr>`).join('')}</tbody></table>${ss.length > 2000 ? `<div class="table-note">Showing 2000 of ${ss.length}</div>` : ''}</div>`;
+  }
+
+  function renderUnicode() {
+    const q = $('uni-q').value.toLowerCase();
+    const enc = $('uni-enc').value;
+    let strs = S.unicode;
+    if (q) strs = strs.filter(s => s.value.toLowerCase().includes(q));
+    if (enc) strs = strs.filter(s => s.encoding === enc);
+    $('uni-rc').textContent = `${strs.length} / ${S.unicode.length}`;
+    if (!S.unicode.length) { $('uni-body').innerHTML = emptyHtml('NO UNICODE STRINGS'); return; }
+    if (!strs.length) { $('uni-body').innerHTML = emptyHtml('NO MATCHES'); return; }
+    $('uni-body').innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Address</th><th>Encoding</th><th>Bytes</th><th>Value</th></tr></thead>
+      <tbody>${strs.slice(0, 500).map(s => {
+        const safe = s.value.replace(/[\n\r\t]/g, c => (c === '\n' ? '\\n' : c === '\r' ? '\\r' : '\\t'));
+        return `<tr>
+          <td class="addr">${esc(s.address)}</td>
+          <td><span class="tag tag-acid">${esc(s.encoding)}</span></td>
+          <td class="c-steel">${s.byteLength}</td>
+          <td class="c-paper td-str" title="${esc(safe)}">${esc(safe)}</td>
+        </tr>`;
+      }).join('')}</tbody></table>${strs.length > 500 ? `<div class="table-note">Showing 500 of ${strs.length}</div>` : ''}</div>`;
+  }
+
+  function mnemClass(m) {
+    if (/^(call|callq|bl|blr)$/.test(m)) return 'mnem-acid';
+    if (/^(syscall|sysenter|ecall|svc|hlt|ud2)$/.test(m)) return 'mnem-critical';
+    if (/^(nop|endbr64|endbr32|isb|dsb)$/.test(m)) return 'mnem-steel';
+    return 'c-paper';
+  }
+
+  function filterDisasm() {
+    const q = ($('da-search').value || '').toLowerCase();
+    const el = $('da-body');
+    let insns = S.allInsns;
+    if (q) insns = insns.filter(i => i.mnemonic.toLowerCase().includes(q) || (i.operands || '').toLowerCase().includes(q));
+    $('da-rc').textContent = `${insns.length} / ${S.allInsns.length}`;
+    if (!insns.length) { el.innerHTML = emptyHtml(S.allInsns.length ? 'NO MATCHES' : 'NO DATA'); return; }
+    const rows = insns.map(i => {
+      const bytes = (i.bytes || []).map(b => b.toString(16).padStart(2, '0')).join(' ');
+      const sym = i.symbol ? `<tr class="da-sym"><td colspan="5">${esc(i.symbol)}:</td></tr>` : '';
+      return `${sym}<tr>
+        <td class="addr">${esc(i.address)}</td>
+        <td class="c-steel">${bytes}</td>
+        <td class="${mnemClass(i.mnemonic)}">${esc(i.mnemonic)}</td>
+        <td class="c-paper">${esc(i.operands || '')}</td>
+        <td class="c-steel">${esc(i.group || '')}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<div class="code-frame"><table class="da-tbl">
+      <thead><tr><th>Address</th><th>Bytes</th><th>Mnemonic</th><th>Operands</th><th>Group</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  }
+
+  async function renderDisasm() {
+    if (!S.file) return;
+    const sec = $('da-sec').value || '.text';
+    const mode = $('da-mode').value;
+    const grp = $('da-grp').value;
+    const limit = Math.min(Math.max(parseInt($('da-limit').value, 10) || 400, 1), 3000);
+    const el = $('da-body');
+    el.innerHTML = loadingHtml(`DISASSEMBLING ${sec}...`);
+    try {
+      if (mode === 'text') {
+        const r = await post('/api/disasm', { file: S.file, section: sec });
+        $('pc-disasm').textContent = 'PLAIN TEXT';
+        $('nb-disasm').textContent = 'TXT';
+        el.innerHTML = `<div class="code-frame"><pre class="code-pre">${esc(r.text || '')}</pre></div>`;
+      } else {
+        const r = await post('/api/disasm/json', { file: S.file, section: sec, group: grp || undefined, limit });
+        S.allInsns = r.instructions || [];
+        $('pc-disasm').textContent = `${S.allInsns.length} INSNS`;
+        $('nb-disasm').textContent = S.allInsns.length;
+        filterDisasm();
+      }
+    } catch (e) {
+      el.innerHTML = emptyHtml('DISASM ERROR', e.message);
+      reodemSpeak(`FAULT: ${e.message}`, true);
+    }
+  }
+
+  function renderTextOutput(containerId, output) {
+    const el = $(containerId);
+    if (!output || !output.trim()) {
+      el.innerHTML = emptyHtml('NO OUTPUT', 'Target architecture or function returned empty output.');
+      return;
+    }
+    el.innerHTML = `<div class="code-frame"><pre class="code-pre">${esc(output)}</pre></div>`;
+  }
+
+  async function runSimplePass(route, payload, bodyId, badgeId, countId, label) {
+    if (!S.file) return;
+    $(bodyId).innerHTML = loadingHtml(`RUNNING ${label}...`);
+    try {
+      const r = await post(route, { file: S.file, ...payload });
+      $(badgeId).textContent = 'OK';
+      if (countId) $(countId).textContent = 'DONE';
+      renderTextOutput(bodyId, r.output);
+    } catch (e) {
+      $(bodyId).innerHTML = emptyHtml(`${label} ERROR`, e.message);
+      reodemSpeak(`FAULT: ${e.message}`, true);
+    }
+  }
+
+  async function runPoly() {
+    if (!S.file) return;
+    const el = $('poly-body');
+    el.innerHTML = loadingHtml('MAPPING POLYMORPHIC REGIONS...');
+    try {
+      const r = await post('/api/poly/json', { file: S.file });
+      const regions = r.regions || [];
+      $('nb-poly').textContent = regions.length;
+      $('pc-poly').textContent = `${regions.length} REGIONS`;
+      if (!regions.length) { el.innerHTML = emptyHtml('CLEAN', 'No polymorphic regions detected.'); return; }
+      el.innerHTML = `<div class="table-wrap"><table>
+        <thead><tr><th>Start</th><th>End</th><th>Size</th><th>Score</th><th>Technique</th><th>Obfuscator</th></tr></thead>
+        <tbody>${regions.map(pr => `<tr>
+          <td class="addr">${esc(pr.start)}</td>
+          <td class="addr">${esc(pr.end)}</td>
+          <td class="c-steel">${esc(pr.size)} B</td>
+          <td class="${pr.mutationScore >= 7 ? 'c-critical' : 'c-paper'}">${pr.mutationScore}/10</td>
+          <td><span class="tag tag-acid">${esc(pr.technique)}</span></td>
+          <td class="c-paper">${esc(pr.obfuscator)}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    } catch (e) {
+      el.innerHTML = emptyHtml('POLY ERROR', e.message);
+    }
+  }
+
+  async function runObfScore() {
+    if (!S.file) return;
+    const el = $('obfscore-body');
+    el.innerHTML = loadingHtml('COMPUTING OBFUSCATION SCORE...');
+    try {
+      const r = await post('/api/obfuscation-score', { file: S.file });
+      $('nb-obfscore').textContent = r.level;
+      $('pc-obfscore').textContent = r.level;
+      const high = r.level === 'HIGH' || r.level === 'EXTREME';
+      el.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card pixel-frame pixel-reticle"><div class="stat-label">SMC Patches</div><div class="stat-value ${r.smc ? 'critical' : ''}">${r.smc}</div></div>
+          <div class="stat-card pixel-frame pixel-reticle"><div class="stat-label">Opaque Predicates</div><div class="stat-value">${r.opaque}</div></div>
+          <div class="stat-card pixel-frame pixel-reticle"><div class="stat-label">Indirect Branches</div><div class="stat-value">${r.indirect}</div></div>
+          <div class="stat-card pixel-frame pixel-reticle"><div class="stat-label">Anti-Debug</div><div class="stat-value ${r.antidebug ? 'critical' : ''}">${r.antidebug}</div></div>
+          <div class="stat-card pixel-frame pixel-reticle"><div class="stat-label">Total Score</div><div class="stat-value acid">${r.total}</div></div>
+        </div>
+        <div class="obf-banner pixel-frame">
+          <div class="obf-level ${high ? 'c-critical' : 'addr'}">${esc(r.level)}</div>
+          <div class="font-mono c-steel">WEIGHTED OBFUSCATION CLASSIFICATION</div>
+        </div>`;
+    } catch (e) {
+      el.innerHTML = emptyHtml('SCORE ERROR', e.message);
+    }
+  }
+
+  async function runCfg() {
+    if (!S.file) return;
+    const fi = parseInt($('cfg-fn').value || '0', 10);
+    const el = $('cfg-body');
+    el.innerHTML = loadingHtml(`BUILDING CFG FOR FUNC #${fi}...`);
+    try {
+      const [r, j] = await Promise.all([
+        post('/api/cfg', { file: S.file, funcIdx: fi }),
+        post('/api/cfg/json', { file: S.file, funcIdx: fi }),
+      ]);
+      const blocks = j.blocks || [];
+      $('nb-cfg').textContent = blocks.length;
+      $('pc-cfg').textContent = `FUNC #${fi}`;
+      $('cfg-info').textContent = `${blocks.length} BLOCKS`;
+      el.innerHTML = `
+        <div class="code-frame"><pre class="code-pre">${esc(r.output || '')}</pre></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>ID</th><th>Start</th><th>End</th><th>Flags</th><th>Successors</th></tr></thead>
+          <tbody>${blocks.map(b => `<tr>
+            <td class="c-steel">${b.id}</td>
+            <td class="addr">${esc(b.start)}</td>
+            <td class="addr">${esc(b.end)}</td>
+            <td>${b.isEntry ? '<span class="tag tag-acid">ENTRY</span> ' : ''}${b.isExit ? '<span class="tag tag-critical">EXIT</span> ' : ''}${b.isPoly ? '<span class="tag tag-acid">POLY</span> ' : ''}${b.isSmc ? '<span class="tag tag-critical">SMC</span>' : ''}</td>
+            <td class="c-steel">${(b.succ || []).join(', ') || '—'}</td>
+          </tr>`).join('')}</tbody></table></div>`;
+    } catch (e) {
+      el.innerHTML = emptyHtml('CFG ERROR', e.message);
+    }
+  }
+
+  async function runCallgraph() {
+    if (!S.file) return;
+    const el = $('callgraph-body');
+    el.innerHTML = loadingHtml('BUILDING CALL GRAPH...');
+    try {
+      const r = await post('/api/callgraph/json', { file: S.file });
+      const nodes = r.nodes || [];
+      const edges = r.edges || [];
+      $('nb-callgraph').textContent = `${nodes.length}/${edges.length}`;
+      $('pc-callgraph').textContent = `${nodes.length} FUNCS`;
+      const inbound = {};
+      const outbound = {};
+      edges.forEach(e => {
+        inbound[e.to] = (inbound[e.to] || 0) + 1;
+        outbound[e.from] = (outbound[e.from] || 0) + 1;
+      });
+      const sorted = [...nodes].sort((a, b) => (inbound[b.idx] || 0) - (inbound[a.idx] || 0));
+      el.innerHTML = `<div class="table-wrap"><table>
+        <thead><tr><th>Function</th><th>Address</th><th>Called By</th><th>Calls Out</th></tr></thead>
+        <tbody>${sorted.map(n => `<tr>
+          <td class="c-paper td-clip" title="${esc(n.name)}">${esc(n.name)}</td>
+          <td class="addr">${esc(n.start)}</td>
+          <td class="addr">${inbound[n.idx] || 0}</td>
+          <td class="c-steel">${outbound[n.idx] || 0}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    } catch (e) {
+      el.innerHTML = emptyHtml('CALL GRAPH ERROR', e.message);
+    }
+  }
+
+  async function doLoad() {
+    const file = $('fileInput').value.trim();
+    if (!file) { $('fileInput').focus(); return; }
+    const btn = $('analyzeBtn');
+    btn.disabled = true;
+    btn.textContent = 'LOADING';
+    setStatus('busy', 'PARSING...');
+    setProgress(0.15);
+
+    try {
+      const [infoR, secR] = await Promise.all([post('/api/info', { file }), post('/api/sections', { file })]);
+      setProgress(0.4);
+      const [symR, fnR] = await Promise.all([post('/api/symbols', { file }), post('/api/functions', { file })]);
+      setProgress(0.65);
+      const [xrR, strR, uniR] = await Promise.all([
+        post('/api/xrefs', { file }),
+        post('/api/strings', { file }),
+        post('/api/unicode', { file }),
+      ]);
+      setProgress(0.85);
+      const [blkR, hotR] = await Promise.all([
+        post('/api/blocks', { file }),
+        post('/api/hottest', { file, n: 10 }),
+      ]);
+
+      S.file = file;
+      S.info = infoR;
+      S.sections = secR.sections;
+      S.symbols = symR.symbols;
+      S.functions = fnR.functions;
+      S.xrefs = xrR.xrefs;
+      S.strings = strR.strings;
+      S.unicode = uniR.unicodeStrings;
+      S.blocks = blkR.blocks;
+      S.hottest = hotR.hottest;
+      S.allInsns = [];
+
+      updateBadges();
+      updateChips();
+      renderOverview();
+      renderSections();
+      renderSymbols();
+      renderFunctions();
+      renderBlocks();
+      renderXrefs();
+      renderStrings();
+      renderUnicode();
+      populateSectionSel();
+      populateFnDropdowns();
+
+      setProgress(1);
+      const name = file.split('/').pop();
+      setStatus('ok', `${name} · ${S.functions.length}FN`);
+      reodemSpeak(`LOADED ${name.toUpperCase()} (${S.functions.length} FUNCS)`);
+      setTimeout(() => setProgress(0), 500);
+    } catch (e) {
+      setStatus('err', e.message);
+      setProgress(0);
+      toast(e.message, true, 4000);
+      reodemSpeak(`DENIED: ${e.message}`, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'ANALYZE';
+    }
+  }
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => go(btn.dataset.p));
+  });
+
+  $('analyzeBtn').addEventListener('click', doLoad);
+  $('fileInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLoad(); });
+
+  $('tokenToggleBtn').addEventListener('click', () => $('tokenBar').classList.toggle('hidden'));
+  $('tokenSaveBtn').addEventListener('click', () => {
+    const val = $('tokenInput').value.trim();
+    if (val) {
+      sessionStorage.setItem('neodax_token', val);
+      toast('SESSION TOKEN SAVED');
+    }
+    $('tokenBar').classList.add('hidden');
+  });
+  $('tokenClearBtn').addEventListener('click', () => {
+    sessionStorage.removeItem('neodax_token');
+    $('tokenInput').value = '';
+    toast('SESSION TOKEN CLEARED');
+  });
+
+  let pokeIdx = 0;
+  $('reodemBtn').addEventListener('click', () => {
+    reodemSpeak(REODEM_LINES[pokeIdx % REODEM_LINES.length]);
+    pokeIdx++;
+  });
+
+  $('sym-q').addEventListener('input', renderSymbols);
+  $('sym-type').addEventListener('change', renderSymbols);
+  $('fn-q').addEventListener('input', renderFunctions);
+  $('fn-sort').addEventListener('change', renderFunctions);
+  $('blk-q').addEventListener('input', renderBlocks);
+  $('xref-type').addEventListener('change', renderXrefs);
+  $('xref-q').addEventListener('input', renderXrefs);
+  $('str-q').addEventListener('input', renderStrings);
+  $('str-minlen').addEventListener('input', renderStrings);
+  $('uni-q').addEventListener('input', renderUnicode);
+  $('uni-enc').addEventListener('change', renderUnicode);
+
+  $('da-sec').addEventListener('change', renderDisasm);
+  $('da-mode').addEventListener('change', renderDisasm);
+  $('da-grp').addEventListener('change', renderDisasm);
+  $('da-search').addEventListener('input', filterDisasm);
+  $('daRefreshBtn').addEventListener('click', renderDisasm);
+
+  $('dcRunBtn').addEventListener('click', () => runSimplePass('/api/decompile', { funcIdx: parseInt($('dc-fn').value || '0', 10) }, 'dc-body', 'nb-decomp', 'pc-decomp', 'DECOMPILER'));
+  $('ssaRunBtn').addEventListener('click', () => runSimplePass('/api/ssa', { funcIdx: parseInt($('ssa-fn').value || '0', 10) }, 'ssa-body', 'nb-ssa', 'pc-ssa', 'SSA'));
+  $('symRunBtn').addEventListener('click', () => runSimplePass('/api/symexec', { funcIdx: parseInt($('sym-fn').value || '0', 10) }, 'sym-body', 'nb-sym', 'pc-sym', 'SYMEXEC'));
+  $('emuRunBtn').addEventListener('click', () => {
+    const initRegs = {
+      '0': parseInt($('emu-r0').value, 0) || 0,
+      '1': parseInt($('emu-r1').value, 0) || 0,
+      '2': parseInt($('emu-r2').value, 0) || 0,
+    };
+    runSimplePass('/api/emulate', { funcIdx: parseInt($('emu-fn').value || '0', 10), initRegs }, 'emu-body', 'nb-emu', 'pc-emu', 'EMULATOR');
+  });
+  $('entropyRunBtn').addEventListener('click', () => runSimplePass('/api/entropy', {}, 'entropy-body', 'nb-entropy', 'pc-entropy', 'ENTROPY'));
+  $('rdaRunBtn').addEventListener('click', () => runSimplePass('/api/rda', { section: $('rda-sec').value || '.text' }, 'rda-body', 'nb-rda', 'pc-rda', 'RDA'));
+  $('ivfRunBtn').addEventListener('click', () => runSimplePass('/api/ivf', {}, 'ivf-body', 'nb-ivf', 'pc-ivf', 'IVF'));
+  $('aireRunBtn').addEventListener('click', () => runSimplePass('/api/aire', {}, 'aire-body', 'nb-aire', 'pc-aire', 'AIRE'));
+  $('vmRunBtn').addEventListener('click', () => runSimplePass('/api/vm-trace', {}, 'vmtrace-body', 'nb-vmtrace', 'pc-vmtrace', 'VM TRACE'));
+  $('loopsRunBtn').addEventListener('click', () => runSimplePass('/api/loops', { funcIdx: parseInt($('loops-fn').value || '-1', 10) }, 'loops-body', 'nb-loops', 'pc-loops', 'LOOPS'));
+  $('polyRunBtn').addEventListener('click', runPoly);
+  $('obfRunBtn').addEventListener('click', runObfScore);
+  $('cfgRunBtn').addEventListener('click', runCfg);
+  $('cgRunBtn').addEventListener('click', runCallgraph);
+  $('menuBtn').addEventListener('click', () => document.querySelector('.sidebar').classList.toggle('open'));
+  $('secAlertClose').addEventListener('click', () => $('secAlert').classList.add('hidden'));
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+      e.preventDefault();
+      $('fileInput').focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+[meta]
+name        = NeoDAX
+version     = 1.2.0
+codename    = Vera
+author      = VersaNexusIX
+license     = Apache-2.0
+repo        = https://github.com/VersaNexusIX/NeoDAX
+tagline     = Industrial Binary Analysis Framework
+
+[logo]
+line1 = \033[38;2;138;138;133m  ┌────────────────────────────────────────────────────────┐\033[0m
+line2 = \033[38;2;138;138;133m  │\033[0m  \033[1;38;2;204;255;0m█▄ █ █▀▀ █▀█ █▀▄ ▄▀█ ▀▄▀\033[0m   \033[1;38;2;242;242;238mv1.2.0\033[0m                     \033[38;2;138;138;133m│\033[0m
+line3 = \033[38;2;138;138;133m  │\033[0m  \033[1;38;2;204;255;0m█ ▀█ ██▄ █▄█ █▄▀ █▀█ █ █\033[0m   \033[38;2;138;138;133mBINARY ANALYSIS FRAMEWORK\033[0m  \033[38;2;138;138;133m│\033[0m
+line4 = \033[38;2;138;138;133m  └────────────────────────────────────────────────────────┘\033[0m
+
+[build]
+success_msg  = built successfully
+banner_width = 72
+
+[colors]
+reset   = \033[0m
+bold    = \033[1m
+addr    = \033[1;38;2;204;255;0m
+mnem    = \033[1;38;2;242;242;238m
+ops     = \033[38;2;242;242;238m
+label   = \033[1;38;2;204;255;0m
+comment = \033[38;2;138;138;133m
+section = \033[1;38;2;204;255;0m
+entry   = \033[1;38;2;204;255;0m
+meta    = \033[38;2;138;138;133m
+warn    = \033[1;38;2;204;255;0m
+error   = \033[1;38;2;255;59;48m
+green   = \033[1;38;2;204;255;0m
+
+[daxc]
+format_version = 4
+magic          = NEOX
+extension      = .daxc
+description    = NeoDAX Analysis Snapshot — AOT C source, compilable by GCC/Clang
+compile_hint   = clang -O2 -o snapshot <file.daxc>
+run_hint       = ./snapshot
+load_hint      = neodax <file.daxc>
+
+[server]
+port           = 7070
+host           = 127.0.0.1
+max_body_bytes = 5242880
+rate_limit     = 300
+
+[emulator]
+max_steps  = 65536
+call_depth = 64
+stack_size = 0x80000
+heap_base  = 0x20000000
+heap_max   = 0x10000000
+page_size  = 4096
+pages      = 256
