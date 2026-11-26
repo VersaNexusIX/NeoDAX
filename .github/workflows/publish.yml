@@ -1,0 +1,180 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — build and test without publishing'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Verify manifest versions
+        id: ver
+        run: |
+          set -euo pipefail
+          VERSION=$(node -e "
+            const root = require('./package.json').version;
+            const js = require('./js/package.json').version;
+            const vers = require('./vers.json').versi;
+            if (!/^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/.test(js)) {
+              throw new Error('Invalid SemVer in js/package.json: ' + js);
+            }
+            if (root !== js || vers !== js) {
+              throw new Error('Version mismatch: package.json=' + root + ', js/package.json=' + js + ', vers.json=' + vers);
+            }
+            process.stdout.write(js);
+          ")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing NeoDAX v${VERSION}"
+
+  test:
+    name: Test (${{ matrix.name }})
+    needs: validate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            name: Linux x64
+          - runner: macos-latest
+            name: macOS ARM64
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang make
+      - name: Build native binary
+        run: make build CC=clang
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+
+  prebuilds:
+    name: Prebuild ${{ matrix.target }}
+    needs: test
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: linux-x64
+            filename: neodax-linux-x64.node
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
+            filename: neodax-linux-arm64.node
+          - runner: macos-latest
+            target: darwin-arm64
+            filename: neodax-darwin-arm64.node
+          - runner: macos-15-intel
+            target: darwin-x64
+            filename: neodax-darwin-x64.node
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+      - name: Stage prebuild
+        env:
+          PREBUILD_FILENAME: ${{ matrix.filename }}
+        run: |
+          set -euo pipefail
+          mkdir -p js/prebuilds
+          cp js/neodax.node "js/prebuilds/${PREBUILD_FILENAME}"
+      - name: Upload prebuild artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: prebuild-${{ matrix.target }}
+          path: js/prebuilds/${{ matrix.filename }}
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    name: Publish to npm
+    needs: [validate, prebuilds]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v8
+        with:
+          pattern: prebuild-*
+          path: js/prebuilds
+          merge-multiple: true
+      - name: Verify prebuilds present
+        run: |
+          set -euo pipefail
+          for f in neodax-linux-x64.node neodax-linux-arm64.node neodax-darwin-arm64.node neodax-darwin-x64.node; do
+            if [ ! -s "js/prebuilds/${f}" ]; then
+              echo "Missing or empty prebuild: ${f}"
+              exit 1
+            fi
+            echo "OK: js/prebuilds/${f} ($(du -sh "js/prebuilds/${f}" | cut -f1))"
+          done
+      - name: Publish to npm
+        if: ${{ !inputs.dry_run }}
+        working-directory: js
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: echo "Dry run complete — all prebuilds verified. Not publishing."
+      - name: Create GitHub Release
+        if: ${{ !inputs.dry_run }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ needs.validate.outputs.version }}
+          name: NeoDAX v${{ needs.validate.outputs.version }}
+          files: js/prebuilds/*.node
+          generate_release_notes: true

@@ -1,0 +1,93 @@
+name: Nightly Regression
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  nightly:
+    name: Nightly (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            name: Linux x64
+          - runner: ubuntu-24.04-arm
+            name: Linux ARM64
+          - runner: macos-latest
+            name: macOS ARM64
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang make
+      - name: Build native binary
+        run: make build CC=clang
+      - name: CLI smoke test
+        run: ./neodax /bin/ls -d
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+
+  open-issue-on-failure:
+    name: Report nightly failure
+    needs: nightly
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: failure()
+    permissions:
+      issues: write
+    steps:
+      - name: Create or update failure issue
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 50,
+            });
+            const existing = openIssues.find((issue) => issue.title.startsWith('[Nightly] Regression detected'));
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Nightly regression failed again on ${today}.\n\nRun: ${runUrl}`,
+              });
+              return;
+            }
+            const { data: repoLabels } = await github.rest.issues.listLabelsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            const available = new Set(repoLabels.map((l) => l.name));
+            const labels = ['regression', 'nightly'].filter((l) => available.has(l));
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Nightly] Regression detected ${today}`,
+              body: `The nightly regression run failed on ${today}.\n\nRun: ${runUrl}\n\nPlease investigate and close this issue when fixed.`,
+              labels,
+            });

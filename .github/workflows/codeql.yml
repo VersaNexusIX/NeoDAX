@@ -1,0 +1,50 @@
+name: CodeQL Security Analysis
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['c-cpp', 'javascript-typescript']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      - name: Install build dependencies
+        if: matrix.language == 'c-cpp'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang make
+      - name: Build native C sources
+        if: matrix.language == 'c-cpp'
+        run: make build CC=clang
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:${{ matrix.language }}'

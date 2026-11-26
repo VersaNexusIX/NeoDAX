@@ -1,0 +1,62 @@
+name: Build Prebuilds
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prebuild-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prebuild:
+    name: Prebuild ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: linux-x64
+            filename: neodax-linux-x64.node
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
+            filename: neodax-linux-arm64.node
+          - runner: macos-latest
+            target: darwin-arm64
+            filename: neodax-darwin-arm64.node
+          - runner: macos-15-intel
+            target: darwin-x64
+            filename: neodax-darwin-x64.node
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+      - name: Stage prebuild
+        env:
+          PREBUILD_FILENAME: ${{ matrix.filename }}
+        run: |
+          set -euo pipefail
+          mkdir -p js/prebuilds
+          cp js/neodax.node "js/prebuilds/${PREBUILD_FILENAME}"
+          echo "Prebuild: js/prebuilds/${PREBUILD_FILENAME} ($(du -sh "js/prebuilds/${PREBUILD_FILENAME}" | cut -f1))"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: prebuild-${{ matrix.target }}
+          path: js/prebuilds/${{ matrix.filename }}
+          retention-days: 30
+          if-no-files-found: error

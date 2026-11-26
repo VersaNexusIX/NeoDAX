@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'learn/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'learn/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-gcc:
+    name: Linux x64 (GCC)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc make
+      - name: Build native binary
+        run: make build CC=gcc
+      - name: CLI smoke test
+        run: ./neodax /bin/ls -d
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+
+  linux-clang:
+    name: Linux x64 (Clang)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang make
+      - name: Build native binary
+        run: make build CC=clang
+      - name: CLI smoke test
+        run: ./neodax /bin/ls -d
+
+  linux-arm64:
+    name: Linux ARM64
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang make
+      - name: Build native binary
+        run: make build CC=clang
+      - name: CLI smoke test
+        run: ./neodax /bin/ls -d
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+
+  macos-arm64:
+    name: macOS ARM64 (Apple Silicon)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Build native binary
+        run: make build CC=clang
+      - name: CLI smoke test
+        run: ./neodax /bin/ls -d
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+
+  macos-x64:
+    name: macOS x64 (Intel)
+    runs-on: macos-15-intel
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Build native binary
+        run: make build CC=clang
+      - name: CLI smoke test
+        run: ./neodax /bin/ls -d
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+
+  node-matrix:
+    name: Node ${{ matrix.node }} (Linux x64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install compiler
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang
+      - name: Build JS addon
+        run: bash build_js.sh
+      - name: Run JS test suite
+        run: node js/test/basic.js && node js/test/security.js
+
+  ci-pass:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [linux-gcc, linux-clang, linux-arm64, macos-arm64, macos-x64, node-matrix]
+    if: always()
+    steps:
+      - name: Verify all required jobs succeeded
+        env:
+          RES_LINUX_GCC: ${{ needs.linux-gcc.result }}
+          RES_LINUX_CLANG: ${{ needs.linux-clang.result }}
+          RES_LINUX_ARM64: ${{ needs.linux-arm64.result }}
+          RES_MACOS_ARM64: ${{ needs.macos-arm64.result }}
+          RES_MACOS_X64: ${{ needs.macos-x64.result }}
+          RES_NODE_MATRIX: ${{ needs.node-matrix.result }}
+        run: |
+          set -euo pipefail
+          for res in "$RES_LINUX_GCC" "$RES_LINUX_CLANG" "$RES_LINUX_ARM64" "$RES_MACOS_ARM64" "$RES_MACOS_X64" "$RES_NODE_MATRIX"; do
+            if [ "$res" != "success" ]; then
+              echo "One or more required jobs did not succeed."
+              exit 1
+            fi
+          done
+          echo "All required jobs passed."
